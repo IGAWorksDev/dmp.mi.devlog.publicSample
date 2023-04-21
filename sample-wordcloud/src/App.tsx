@@ -7,7 +7,6 @@ import {computed, makeObservable} from "mobx";
 import BackgroundCIRCLE from "../src/sample/word_circle.svg";
 //@ts-ignore
 import BackgroundBlueCIRCLE from "../src/sample/word_circle_blue.png";
-import MKTWordCloud from "./sample/MktWordCloud";
 
 const hangulData = [
     {
