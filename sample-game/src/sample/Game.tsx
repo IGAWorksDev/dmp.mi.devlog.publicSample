@@ -21,7 +21,7 @@ enum DotDirection {
 const BLOCK_SPEED = 3;
 const BLOCK_SIZE = 20;
 const SPEED_MAX = 2;
-const DOT_SIZE = 3;
+const DOT_SIZE = 2;
 
 @observer
 export default class Game extends React.Component<any, any> {
@@ -182,9 +182,16 @@ export default class Game extends React.Component<any, any> {
     };
 
     private renderDot = (offCtx: any) => {
-        this.dotList.map((a, i) => {
-            return offCtx.fillRect(a.x, a.y, 3, 3)
-        })
+        const {dotList} = this;
+        for (let i = 0; i < this.dotList.length; i++) {
+            const dot = dotList[i];
+            offCtx.beginPath();
+            offCtx.arc(dot.x, dot.y, DOT_SIZE, 0, Math.PI * 2);
+            offCtx.stroke();
+            offCtx.fill();
+            offCtx.fillStyle = 'red';
+            offCtx.closePath();
+        }
     }
 
     private updateDot = () => {
@@ -230,10 +237,10 @@ export default class Game extends React.Component<any, any> {
     private handleCrash = () => {
         const {block} = this;
         this.dotList.forEach((a) => {
-            if ((a.x + a.speedX + DOT_SIZE > block.x) &&
-                (a.x + a.speedX < block.x + BLOCK_SIZE) &&
-                (a.y + a.speedY < block.y + BLOCK_SIZE) &&
-                (a.y + a.speedY + DOT_SIZE > block.y)) {
+            const x = Math.max(a.x, block.x) - Math.min(a.x, block.x);
+            const y = Math.max(a.y, block.y) - Math.min(a.y, block.y);
+            const distance = Math.sqrt(x * x + y * y)
+            if (distance <= BLOCK_SIZE / 2 + DOT_SIZE / 2) {
                 this.isCrash = true;
             }
         })
@@ -272,17 +279,17 @@ export default class Game extends React.Component<any, any> {
             return;
         }
 
-        this.controlMove();
         offCtx.clearRect(0, 0, this.size, this.size);
-        offCtx.fillStyle = "red";
+
+        this.controlMove();
         this.createDot();
         this.updateDot();
         this.renderDot(offCtx);
         this.handleCrash();
+
         offCtx.drawImage(this.ship, this.block.x - BLOCK_SIZE / 2, this.block.y - BLOCK_SIZE / 2, BLOCK_SIZE, BLOCK_SIZE);
         this.isCrash && this.drawOver(offCtx)
         const ctx = this.canvasRef.current.getContext("2d");
-
         if (ctx) {
             ctx.clearRect(0, 0, this.size, this.size);
             ctx.drawImage(offCtx.canvas, 0, 0);
