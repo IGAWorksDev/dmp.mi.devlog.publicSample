@@ -7,6 +7,7 @@ import {computed, makeObservable} from "mobx";
 import BackgroundCIRCLE from "../src/sample/word_circle.svg";
 //@ts-ignore
 import BackgroundBlueCIRCLE from "../src/sample/word_circle_blue.png";
+import WordCloudV2 from "./sample/WordCloudV2";
 
 const hangulData = [
     {
@@ -131,9 +132,9 @@ const hangulData = [
     }
 ]
 @observer
-export default class App extends React.Component<any, any>{
+export default class App extends React.Component<any, any> {
 
-    constructor(props:any) {
+    constructor(props: any) {
         super(props);
         makeObservable(this);
     }
@@ -152,13 +153,25 @@ export default class App extends React.Component<any, any>{
             value: Math.floor((k.count - min) * (wordCloudMax / length) + 4)
         }));
     }
+
     render() {
         return (
 
             <div className="App">
                 <header className="App-header">
                     <p>
-                        <WordCloud words={this.keywordChartData} width={50} height={50} size={5} shape={BackgroundBlueCIRCLE}/>
+                        <WordCloud words={this.keywordChartData} width={50} height={50} size={5}
+                                   shape={BackgroundBlueCIRCLE}/>
+                    </p>
+
+                    <p>
+                        <WordCloudV2 words={this.keywordChartData}
+                                     width={250}
+                                     height={250}
+                                     opt={{
+                                         debugMode: true,
+                                         maskingImage: BackgroundBlueCIRCLE
+                                     }}/>
                     </p>
                 </header>
             </div>
