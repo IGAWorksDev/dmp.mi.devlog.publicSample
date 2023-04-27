@@ -29,19 +29,22 @@ export default class Game extends React.Component<any, any> {
     private readonly gameRef = React.createRef<HTMLElement>()
     private readonly canvasRef = React.createRef<HTMLCanvasElement>();
 
+    private createImage = (resource: string) => {
+        const i = new Image();
+        i.src = resource;
+        return i;
+    };
+
     private offCanvas: HTMLCanvasElement = document.createElement("canvas");
 
     private keyPress: number = 0;
-    private timer: any = undefined;
+    private timer: number = 0;
     @observable
     private size = 0;
-    @observable
     private block: { x: number, y: number } = {x: 50, y: 50};
-    private ship: any;
-    @observable
+    private ship: HTMLImageElement = this.createImage(Ship);
     private dotList: Dot[] = [];
     private cnt: number = 0;
-    @observable
     private isCrash: boolean = false;
 
     constructor(props: any) {
@@ -49,15 +52,12 @@ export default class Game extends React.Component<any, any> {
         makeObservable(this);
     }
 
-
     componentDidMount() {
         window.addEventListener('keyup', this.onKeyUp);
         window.addEventListener('keydown', this.onKeyDown);
         window.addEventListener('resize', this.setSize);
         this.setSize();
-        this.initResource();
         this.onDraw();
-
     }
 
     componentWillUnmount() {
@@ -67,15 +67,6 @@ export default class Game extends React.Component<any, any> {
         cancelAnimationFrame(this.timer);
     };
 
-    private createImage = (resource: any) => {
-        const i = new Image();
-        i.src = resource;
-        return i;
-    };
-
-    private initResource = () => {
-        this.ship = this.createImage(Ship)
-    }
 
     @action
     private setSize = () => {
@@ -146,7 +137,6 @@ export default class Game extends React.Component<any, any> {
     };
 
 
-    @action
     private createDot = () => {
         const {size} = this;
         this.cnt < 2000 ? this.cnt++ : this.cnt = 0
@@ -181,16 +171,15 @@ export default class Game extends React.Component<any, any> {
         }
     };
 
-    private renderDot = (offCtx: any) => {
+    private renderDot = (offCtx: CanvasRenderingContext2D) => {
         const {dotList} = this;
+        offCtx.fillStyle = 'red';
         for (let i = 0; i < this.dotList.length; i++) {
             const dot = dotList[i];
             offCtx.beginPath();
             offCtx.arc(dot.x, dot.y, DOT_SIZE, 0, Math.PI * 2);
             offCtx.stroke();
             offCtx.fill();
-            offCtx.fillStyle = 'red';
-            offCtx.closePath();
         }
     }
 
@@ -203,33 +192,23 @@ export default class Game extends React.Component<any, any> {
                 case DotDirection.LEFT:
                     dot.x += speedX;
                     dot.y += speedY;
-                    if (dot.x > size - DOT_SIZE) {
-                        return all;
-                    }
                     break;
                 case DotDirection.TOP:
                     dot.x += speedX;
                     dot.y += speedY;
-                    if (dot.y > size - DOT_SIZE) {
-                        return all;
-                    }
                     break;
                 case DotDirection.RIGHT:
                     dot.x -= speedX;
                     dot.y += speedY;
-                    if (dot.x < 0) {
-                        return all;
-                    }
                     break;
                 case DotDirection.BOTTOM:
                     dot.x += speedX;
                     dot.y -= speedY;
-                    if (dot.y < 0) {
-                        return all;
-                    }
                     break;
             }
-            all.push(dot);
+            if (dot.x > 0 && dot.x < size && dot.y > 0 && dot.y < size) {
+                all.push(dot);
+            }
             return all;
         }, []);
     }
@@ -237,8 +216,8 @@ export default class Game extends React.Component<any, any> {
     private handleCrash = () => {
         const {block} = this;
         this.dotList.forEach((a) => {
-            const x = Math.max(a.x, block.x) - Math.min(a.x, block.x);
-            const y = Math.max(a.y, block.y) - Math.min(a.y, block.y);
+            const x = a.x - block.x;
+            const y = a.y - block.y;
             const distance = Math.sqrt(x * x + y * y)
             if (distance <= BLOCK_SIZE / 2 + DOT_SIZE / 2) {
                 this.isCrash = true;
@@ -246,7 +225,7 @@ export default class Game extends React.Component<any, any> {
         })
     }
 
-    private drawOver = (ctx: any) => {
+    private drawOver = (ctx: CanvasRenderingContext2D) => {
         const {size} = this;
         let color = '#080808';
         ctx.beginPath()
@@ -258,12 +237,54 @@ export default class Game extends React.Component<any, any> {
         ctx.closePath();
     }
 
+    @action
     private handleRestart = () => {
+        const {size} = this;
         if (this.isCrash) {
             this.isCrash = false;
             this.dotList = [];
+            this.block = {x: size / 2, y: size / 2}
             this.onDraw();
         }
+    }
+
+    private getRotateDegree = () => {
+        const {keyPress} = this
+        switch (keyPress) {
+            case MultiKeyCode.up:
+                return 0
+            case MultiKeyCode.up + MultiKeyCode.right:
+                return 45
+            case MultiKeyCode.right:
+                return 90
+            case MultiKeyCode.right + MultiKeyCode.down:
+                return 135
+            case MultiKeyCode.down:
+                return 180
+            case MultiKeyCode.down + MultiKeyCode.left:
+                return 225
+            case MultiKeyCode.left:
+                return 270
+            case MultiKeyCode.left + MultiKeyCode.up:
+                return 315
+            default:
+                return 0
+        }
+    }
+
+    private renderShip = (offCtx: CanvasRenderingContext2D) => {
+        const {getRotateDegree} = this;
+        offCtx.save();
+        offCtx.translate(this.block.x, this.block.y)
+        offCtx.rotate(getRotateDegree() * (Math.PI / 180))
+        offCtx.drawImage(this.ship, -BLOCK_SIZE / 2, -BLOCK_SIZE / 2, BLOCK_SIZE, BLOCK_SIZE);
+        offCtx.restore();
+    }
+
+    private handleDot = (offCtx: CanvasRenderingContext2D) => {
+        this.createDot();
+        this.updateDot();
+        this.renderDot(offCtx);
     }
 
 
@@ -282,12 +303,10 @@ export default class Game extends React.Component<any, any> {
         offCtx.clearRect(0, 0, this.size, this.size);
 
         this.controlMove();
-        this.createDot();
-        this.updateDot();
-        this.renderDot(offCtx);
+        this.renderShip(offCtx);
+        this.handleDot(offCtx);
         this.handleCrash();
 
-        offCtx.drawImage(this.ship, this.block.x - BLOCK_SIZE / 2, this.block.y - BLOCK_SIZE / 2, BLOCK_SIZE, BLOCK_SIZE);
         this.isCrash && this.drawOver(offCtx)
         const ctx = this.canvasRef.current.getContext("2d");
         if (ctx) {
