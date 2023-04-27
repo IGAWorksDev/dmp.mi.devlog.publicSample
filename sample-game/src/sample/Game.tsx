@@ -183,14 +183,13 @@ export default class Game extends React.Component<any, any> {
 
     private renderDot = (offCtx: any) => {
         const {dotList} = this;
+        offCtx.fillStyle = 'red';
         for (let i = 0; i < this.dotList.length; i++) {
             const dot = dotList[i];
             offCtx.beginPath();
             offCtx.arc(dot.x, dot.y, DOT_SIZE, 0, Math.PI * 2);
             offCtx.stroke();
             offCtx.fill();
-            offCtx.fillStyle = 'red';
-            offCtx.closePath();
         }
     }
 
@@ -229,11 +228,13 @@ export default class Game extends React.Component<any, any> {
                     }
                     break;
             }
+
             all.push(dot);
             return all;
         }, []);
     }
 
+    @action
     private handleCrash = () => {
         const {block} = this;
         this.dotList.forEach((a) => {
@@ -258,12 +259,99 @@ export default class Game extends React.Component<any, any> {
         ctx.closePath();
     }
 
+    @action
     private handleRestart = () => {
         if (this.isCrash) {
             this.isCrash = false;
             this.dotList = [];
             this.onDraw();
         }
+    }
+
+    private getRotateDegree = () => {
+        const {keyPress} = this
+        switch (keyPress) {
+            case MultiKeyCode.up:
+                return 0
+            case MultiKeyCode.up + MultiKeyCode.right:
+                return 45
+            case MultiKeyCode.right:
+                return 90
+            case MultiKeyCode.right + MultiKeyCode.down:
+                return 135
+            case MultiKeyCode.down:
+                return 180
+            case MultiKeyCode.down + MultiKeyCode.left:
+                return 225
+            case MultiKeyCode.left:
+                return 270
+            case MultiKeyCode.left + MultiKeyCode.up:
+                return 315
+            default:
+                return 0
+        }
+    }
+
+    private renderShip = (offCtx: any) => {
+        const {keyPress,getRotateDegree} = this;
+        // offCtx.drawImage(this.ship, this.block.x - BLOCK_SIZE / 2, this.block.y - BLOCK_SIZE / 2, BLOCK_SIZE, BLOCK_SIZE);
+        offCtx.save();
+
+        // offCtx.rotate(getRotateDegree()*(Math.PI/180));
+        // switch (keyPress) {
+        //     case MultiKeyCode.up:
+        //         offCtx.rotate(getRotateDegree()*(Math.PI/180));
+        //         offCtx.drawImage(this.ship, 0, 0, BLOCK_SIZE, BLOCK_SIZE);
+        //         break;
+        //     case MultiKeyCode.up + MultiKeyCode.right:
+        //         return 45
+        //     case MultiKeyCode.right:
+        //         offCtx.rotate(90*(Math.PI/180));
+        //         offCtx.drawImage(this.ship, 0, 0, BLOCK_SIZE, BLOCK_SIZE);
+        //         break;
+        //     case MultiKeyCode.right + MultiKeyCode.down:
+        //         return 135
+        //     case MultiKeyCode.down:
+        //         offCtx.rotate(getRotateDegree()*(Math.PI/180));
+        //         offCtx.drawImage(this.ship, 0, 0, BLOCK_SIZE, BLOCK_SIZE);
+        //         break;
+        //     case MultiKeyCode.down + MultiKeyCode.left:
+        //         return 225
+        //     case MultiKeyCode.left:
+        //         offCtx.rotate(getRotateDegree()*(Math.PI/180));
+        //         offCtx.drawImage(this.ship, 0, 0, BLOCK_SIZE, BLOCK_SIZE);
+        //         break;
+        //     case MultiKeyCode.left + MultiKeyCode.up:
+        //         return 315
+        //     default:
+        //         return 0
+        // }
+
+
+
+
+
+
+
+
+
+
+        offCtx.translate(this.block.x, this.block.y)
+        if ((keyPress & MultiKeyCode.up) || (keyPress === 0)) {
+            offCtx.rotate(0);
+            // offCtx.drawImage(this.ship, 0, 0, BLOCK_SIZE, BLOCK_SIZE);
+        }else if (keyPress & MultiKeyCode.down) {
+            offCtx.rotate(180*(Math.PI/180));
+            // offCtx.drawImage(this.ship, 0, 0, BLOCK_SIZE, BLOCK_SIZE);
+        }else if (keyPress & MultiKeyCode.left) {
+            offCtx.rotate(270*(Math.PI/180));
+            // offCtx.drawImage(this.ship, 0, 0, BLOCK_SIZE, BLOCK_SIZE);
+        } else if (keyPress & MultiKeyCode.right) {
+            offCtx.rotate(90*(Math.PI/180));
+            // offCtx.drawImage(this.ship, 0, 0, BLOCK_SIZE, BLOCK_SIZE);
+        }
+        offCtx.drawImage(this.ship, 0, 0, BLOCK_SIZE, BLOCK_SIZE);
+        offCtx.restore();
     }
 
 
@@ -282,12 +370,14 @@ export default class Game extends React.Component<any, any> {
         offCtx.clearRect(0, 0, this.size, this.size);
 
         this.controlMove();
-        this.createDot();
-        this.updateDot();
-        this.renderDot(offCtx);
-        this.handleCrash();
+        // this.createDot();
+        // this.updateDot();
+        // this.renderDot(offCtx);
+        // this.handleCrash();
 
-        offCtx.drawImage(this.ship, this.block.x - BLOCK_SIZE / 2, this.block.y - BLOCK_SIZE / 2, BLOCK_SIZE, BLOCK_SIZE);
+        // offCtx.drawImage(this.ship, this.block.x - BLOCK_SIZE / 2, this.block.y - BLOCK_SIZE / 2, BLOCK_SIZE, BLOCK_SIZE);
+        this.renderShip(offCtx);
+
         this.isCrash && this.drawOver(offCtx)
         const ctx = this.canvasRef.current.getContext("2d");
         if (ctx) {
