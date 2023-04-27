@@ -38,8 +38,8 @@ interface ResultType {
 }
 
 enum Direction {
-    portrait = 1,
-    landscape
+    portrait = "portrait",
+    landscape = "landscape"
 }
 
 @observer
@@ -52,9 +52,12 @@ class WordCloud extends Component<WordCloudProps> {
     private readonly textCanvas = document.createElement('canvas');
 
     //measureText 를 위한 버퍼크기
-    private readonly textBufferSize = {w: 1000, h: 100};
+    private readonly textBufferSize = {w: 1000, h: 200};
 
     private maskingResource: any;
+
+    @observable
+    private loading: boolean = false;
 
     @observable
     private width: number = this.defaultSize;
@@ -64,6 +67,8 @@ class WordCloud extends Component<WordCloudProps> {
 
     @observable
     private resultList: ResultType[] = [];
+
+    private worker?: Worker;
 
     constructor(props: WordCloudProps) {
         super(props);
@@ -97,6 +102,9 @@ class WordCloud extends Component<WordCloudProps> {
     //offcanvas 에서 탐색시 몇 칸씩 건너띄워서 계산할지 산출, 50x50기준으로 계산
     @computed
     private get searchLength() {
+        if (window.Worker) { //워커 사용 가능시 고성능으로 처리
+            return 1;
+        }
         return Math.max(1, Math.floor(this.width / 50));
     }
 
@@ -282,11 +290,14 @@ class WordCloud extends Component<WordCloudProps> {
         if (!ctx) {
             console.error("Canvas 객체를 찾을수 없습니다.");
             return;
+        } else if (!window.Worker) {
+            console.error("Web Worker 를 지원하지 않습니다.")
+            return;
         }
 
         const {width, height} = this;
 
-        ctx.save();
+        //ctx.save();
         ctx.clearRect(0, 0, width, height);
         ctx.textBaseline = "top";
         ctx.textAlign = "left";
@@ -301,13 +312,78 @@ class WordCloud extends Component<WordCloudProps> {
         const startX = width / 2;
         const startY = height / 2;
 
-        const resultList: ResultType[] = [];
 
-        wordData.map((w) => {
+        if (this.worker) {
+            this.worker.terminate();
+        }
+
+
+        this.loading = true;
+        this.resultList = [];
+
+        this.worker = new Worker("/worker.js");
+
+        this.worker.postMessage({type: "start"});
+
+        this.worker.onmessage = action((event) => {
+            const {type} = event.data;
+
+            if (wordData.length === 0) {
+                this.worker.terminate();
+                this.worker = undefined;
+                this.loading = false;
+
+                if (this.props.opt?.debugMode) {
+                    const realCtx = this.testRef.current?.getContext('2d', {willReadFrequently: true});
+                    if (!realCtx) {
+                        return;
+                    }
+
+                    realCtx.drawImage(ctx.canvas, 0, 0);
+                }
+                return;
+            }
+
+            if (type === 'next') {
+                const imageData = ctx.getImageData(0, 0, width, height);
+                const direction = Math.floor(Math.random() * 2) === 0 ? Direction.portrait : Direction.landscape;
+                const word = wordData.shift();
+
+                this.worker.postMessage({
+                    type: "process",
+                    imageData,
+                    direction,
+                    word,
+                    searchLength: this.searchLength,
+                    fgColor,
+                    startX,
+                    startY,
+                    markingColor: this.markingColorSum
+                });
+            } else if (type === 'result') {
+                const {word, direction, x, y} = event.data ?? {};
+                if (!word) {
+                    console.error("연산 결과가 없습니다.")
+                    return;
+                }
+
+                this.drawMarking(ctx, x, y, word.width, word.height, direction);
+
+                this.resultList = [...this.resultList, {
+                    x,
+                    y,
+                    word: word.word,
+                    direction,
+                    weight: word.value,
+                    fontSize: word.fontSize
+                }];
+            }
+        });
+
+        /*wordData.map((w) => {
             //캔버스 갱신
             const imageData = ctx.getImageData(0, 0, width, height);
 
-            let direction = Math.floor(Math.random() * 2) === 0 ? Direction.portrait : Direction.landscape;
 
             //Todo : 요부분은 워커로 옮길 예정
             //첫번째 선정된 방향 으로 놓아보면서 위치를 산출
@@ -344,82 +420,14 @@ class WordCloud extends Component<WordCloudProps> {
                     fontSize: w.fontSize
                 });
             }
-        })
+        });
 
         this.resultList = resultList;
 
         ctx.restore();
 
-        if (this.props.opt?.debugMode) {
-            const realCtx = this.testRef.current?.getContext('2d', {willReadFrequently: true});
-            if (!realCtx) {
-                return;
-            }
-
-            realCtx.drawImage(ctx.canvas, 0, 0);
-        }
+        */
     }
-
-    private findXy = (imageData: ImageData,
-                      direction: Direction,
-                      w: WordTypeInner,
-                      searchLength: number,
-                      fgColor: number,
-                      startX: number,
-                      startY: number) => {
-        const {width, height} = imageData;
-        const visited: Set<string> = new Set();
-        const queue = [{x: startX, y: startY}];
-
-        while (queue.length) {
-            const {x, y} = queue.shift();
-
-            for (let dx = -searchLength; dx <= searchLength; dx += searchLength) {
-                for (let dy = -searchLength; dy <= searchLength; dy += searchLength) {
-                    const nextX = x + dx;
-                    const nextY = y + dy;
-                    const wordWidth = direction === Direction.landscape ? w.width : w.height;
-                    const wordHeight = direction === Direction.landscape ? w.height : w.width;
-
-                    if (nextY < 0 || nextX < 0 ||
-                        (nextX + wordWidth) >= width || (nextY + wordHeight) >= height ||
-                        visited.has(`${nextX},${nextY}`)) {
-                        continue;
-                    }
-
-                    visited.add(`${nextX},${nextY}`);
-
-                    const isEmpty = this.isEmpty(imageData, direction, fgColor, nextX, nextY, w.width, w.height);
-                    if (isEmpty) {
-                        return {x: nextX, y: nextY};
-                    } else {
-                        queue.push({x: nextX, y: nextY});
-                    }
-                }
-            }
-        }
-    }
-
-
-    //중간점을 기준으로 사방탐색, 직사각형
-    private isEmpty = (imageData: ImageData,
-                       direction: Direction,
-                       fgColor: number,
-                       x: number, y: number, w: number, h: number) => {
-        const {data, width} = imageData;
-        const dw = direction === Direction.landscape ? w : h;
-        const dh = direction === Direction.landscape ? h : w;
-        for (let dx = Math.floor(x - dw / 2); dx < Math.floor(x + dw / 2); dx++) {
-            for (let dy = Math.floor(y - dh / 2); dy < Math.floor(y + dh / 2); dy++) {
-                const idx = dx * 4 + (width * 4 * dy);
-                const sumRgb = data[idx] + data[idx + 1] + data[idx + 2] + data[idx + 3];
-                if (sumRgb != fgColor || sumRgb === this.markingColorSum) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    };
 
 
     private drawMarking = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, direction: Direction) => {
@@ -453,6 +461,14 @@ class WordCloud extends Component<WordCloudProps> {
                                   }}>
                             {w.word}
                         </span>)
+                    }
+                    {
+                        this.loading && <p style={{
+                            position: "absolute",
+                            left: "50%",
+                            top: "50%",
+                            transform: "translate(-50%, -50%)"
+                        }}>작업중...</p>
                     }
                 </div>
                 {opt.debugMode && <canvas width={this.width} height={this.height} ref={this.testRef}/>}

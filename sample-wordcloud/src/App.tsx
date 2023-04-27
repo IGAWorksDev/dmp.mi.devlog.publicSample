@@ -159,16 +159,15 @@ export default class App extends React.Component<any, any> {
 
             <div className="App">
                 <header className="App-header">
-                    <p>
-                        <WordCloud words={this.keywordChartData} width={50} height={50} size={5}
-                                   shape={BackgroundBlueCIRCLE}/>
-                    </p>
+
 
                     <p>
                         <WordCloudV2 words={this.keywordChartData}
-                                     width={250}
-                                     height={250}
+                                     width={500}
+                                     height={500}
                                      opt={{
+                                         minFontSize: 24,
+                                         maxFontSize:125,
                                          debugMode: true,
                                          maskingImage: BackgroundBlueCIRCLE
                                      }}/>
