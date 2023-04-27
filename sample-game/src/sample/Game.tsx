@@ -15,37 +15,35 @@ enum DotDirection {
     LEFT,
     RIGHT,
     TOP,
-    BOTTOM
+    BOTTOM,
+    SIZE
 }
 
-const BLOCK_SPEED = 3;
-const BLOCK_SIZE = 20;
-const SPEED_MAX = 2;
-const DOT_SIZE = 2;
+
+interface Dot {
+    x: number;
+    y: number;
+    speedX: number;
+    speedY: number;
+}
 
 @observer
-export default class Game extends React.Component<any, any> {
+export default class Game extends React.Component {
 
     private readonly gameRef = React.createRef<HTMLElement>()
     private readonly canvasRef = React.createRef<HTMLCanvasElement>();
-
-    private createImage = (resource: string) => {
-        const i = new Image();
-        i.src = resource;
-        return i;
-    };
 
     private offCanvas: HTMLCanvasElement = document.createElement("canvas");
 
     private keyPress: number = 0;
     private timer: number = 0;
-    @observable
-    private size = 0;
-    private block: { x: number, y: number } = {x: 50, y: 50};
-    private ship: HTMLImageElement = this.createImage(Ship);
+    private player: { x: number, y: number } = {x: 50, y: 50};
+    private playerImageResource?: HTMLImageElement;
     private dotList: Dot[] = [];
-    private cnt: number = 0;
-    private isCrash: boolean = false;
+    private isGameOver: boolean = false;
+
+    @observable
+    private screenSize = 0;
 
     constructor(props: any) {
         super(props);
@@ -53,204 +51,40 @@ export default class Game extends React.Component<any, any> {
     }
 
     componentDidMount() {
-        window.addEventListener('keyup', this.onKeyUp);
-        window.addEventListener('keydown', this.onKeyDown);
-        window.addEventListener('resize', this.setSize);
-        this.setSize();
-        this.onDraw();
+        window.addEventListener('keyup', this.handleKeyUp);
+        window.addEventListener('keydown', this.handleKeyDown);
+        window.addEventListener('resize', this.updateScreenSize);
+
+        this.init();
     }
 
     componentWillUnmount() {
-        window.removeEventListener('keyup', this.onKeyUp);
-        window.removeEventListener('keydown', this.onKeyDown);
-        window.removeEventListener('resize', this.setSize);
-        cancelAnimationFrame(this.timer);
+        window.removeEventListener('keyup', this.handleKeyUp);
+        window.removeEventListener('keydown', this.handleKeyDown);
+        window.removeEventListener('resize', this.updateScreenSize);
+
+        if (this.timer) {
+            cancelAnimationFrame(this.timer);
+        }
+        this.timer = undefined;
     };
 
-
-    @action
-    private setSize = () => {
-        const size = Math.floor(this.gameRef.current?.getBoundingClientRect().width || 0);
-        this.size = size
-        this.block = {x: size / 2, y: size / 2}
-        this.offCanvas.width = size;
-        this.offCanvas.height = size;
-    }
-
-    private onKeyUp = (e: KeyboardEvent) => {
-        e.stopPropagation();
-        switch (e.key) {
-            case "ArrowUp":
-                this.keyPress ^= MultiKeyCode.up;
-                break;
-            case "ArrowDown":
-                this.keyPress ^= MultiKeyCode.down;
-                break;
-            case "ArrowLeft":
-                this.keyPress ^= MultiKeyCode.left;
-                break;
-            case "ArrowRight":
-                this.keyPress ^= MultiKeyCode.right;
-                break;
-        }
-    }
-
-    private onKeyDown = (e: KeyboardEvent) => {
-        e.stopPropagation();
-        switch (e.key) {
-            case "ArrowUp":
-                this.keyPress |= MultiKeyCode.up;
-                break;
-            case "ArrowDown":
-                this.keyPress |= MultiKeyCode.down;
-                break;
-            case "ArrowLeft":
-                this.keyPress |= MultiKeyCode.left;
-                break;
-            case "ArrowRight":
-                this.keyPress |= MultiKeyCode.right;
-                break;
-            case "Enter":
-                this.handleRestart();
-                break;
-        }
-    }
-
-    private controlMove = () => {
-        const {keyPress} = this;
-        if (keyPress & MultiKeyCode.up) {
-            this.block.y < BLOCK_SIZE ? this.block.y = BLOCK_SIZE / 2 : this.block.y -= BLOCK_SPEED;
-        }
-        if (keyPress & MultiKeyCode.down) {
-            this.block.y > this.size - BLOCK_SIZE ? this.block.y = this.size - BLOCK_SIZE / 2 : this.block.y += BLOCK_SPEED;
-        }
-        if (keyPress & MultiKeyCode.left) {
-            this.block.x < BLOCK_SIZE ? this.block.x = BLOCK_SIZE / 2 : this.block.x -= BLOCK_SPEED;
-        }
-        if (keyPress & MultiKeyCode.right) {
-            this.block.x > this.size - BLOCK_SIZE ? this.block.x = this.size - BLOCK_SIZE / 2 : this.block.x += BLOCK_SPEED;
-        }
-    }
-
-    private rand = (range: number = 10, offset: number = 0) => {
-        return Math.floor(Math.random() * range) + offset;
-    };
-
-
-    private createDot = () => {
-        const {size} = this;
-        this.cnt < 2000 ? this.cnt++ : this.cnt = 0
-        const dot = new Dot();
-        dot.direction = this.rand(4);
-
-        dot.speedX = this.rand(SPEED_MAX, 1);
-        dot.speedY = this.rand(SPEED_MAX, 1);
-
-        switch (dot.direction) {
-            case DotDirection.LEFT:
-                dot.y = this.rand(size - DOT_SIZE);
-                dot.speedY *= dot.y < size / 2 ? 1 : -1;
-                break;
-            case DotDirection.TOP:
-                dot.x = this.rand(size - DOT_SIZE);
-                dot.speedX *= dot.x < size / 2 ? 1 : -1;
-                break;
-            case DotDirection.RIGHT:
-                dot.x = size - DOT_SIZE;
-                dot.y = this.rand(size - DOT_SIZE);
-                dot.speedY *= dot.y < size / 2 ? 1 : -1;
-                break;
-            case DotDirection.BOTTOM:
-                dot.x = this.rand(size - DOT_SIZE);
-                dot.speedX *= dot.x < size / 2 ? 1 : -1;
-                dot.y = size;
-                break;
-        }
-        if (this.cnt % 20 === 0) {
-            this.dotList = [...this.dotList, dot];
+    //Todo : 옵션 게터로 재정의
+    private get option() {
+        return {
+            player: {
+                speed: 3,
+                size: 20
+            },
+            dot: {
+                size: 2,
+                maxSpeed: 4
+            }
         }
     };
 
-    private renderDot = (offCtx: CanvasRenderingContext2D) => {
-        const {dotList} = this;
-        offCtx.fillStyle = 'red';
-        for (let i = 0; i < this.dotList.length; i++) {
-            const dot = dotList[i];
-            offCtx.beginPath();
-            offCtx.arc(dot.x, dot.y, DOT_SIZE, 0, Math.PI * 2);
-            offCtx.stroke();
-            offCtx.fill();
-        }
-    }
-
-    private updateDot = () => {
-        const {size} = this;
-        this.dotList = this.dotList.reduce((all: Dot[], dot: Dot) => {
-            const speedX = dot.speedX;
-            const speedY = dot.speedY;
-            switch (dot.direction) {
-                case DotDirection.LEFT:
-                    dot.x += speedX;
-                    dot.y += speedY;
-                    break;
-                case DotDirection.TOP:
-                    dot.x += speedX;
-                    dot.y += speedY;
-                    break;
-                case DotDirection.RIGHT:
-                    dot.x -= speedX;
-                    dot.y += speedY;
-                    break;
-                case DotDirection.BOTTOM:
-                    dot.x += speedX;
-                    dot.y -= speedY;
-                    break;
-            }
-            if (dot.x > 0 && dot.x < size && dot.y > 0 && dot.y < size) {
-                all.push(dot);
-            }
-            return all;
-        }, []);
-    }
-
-    private handleCrash = () => {
-        const {block} = this;
-        this.dotList.forEach((a) => {
-            const x = a.x - block.x;
-            const y = a.y - block.y;
-            const distance = Math.sqrt(x * x + y * y)
-            if (distance <= BLOCK_SIZE / 2 + DOT_SIZE / 2) {
-                this.isCrash = true;
-            }
-        })
-    }
-
-    private drawOver = (ctx: CanvasRenderingContext2D) => {
-        const {size} = this;
-        let color = '#080808';
-        ctx.beginPath()
-        ctx.shadowColor = 'transparent'
-        ctx.font = "30px Arial";
-        ctx.fillStyle = color;
-        ctx.fillText("GAME OVER", size / 2 - 80, size / 2);
-        ctx.fillText("PRESS ENTER", size / 2 - 90, size / 2 + 30);
-        ctx.closePath();
-    }
-
-    @action
-    private handleRestart = () => {
-        const {size} = this;
-        if (this.isCrash) {
-            this.isCrash = false;
-            this.dotList = [];
-            this.block = {x: size / 2, y: size / 2}
-            this.onDraw();
-        }
-    }
-
-    private getRotateDegree = () => {
-        const {keyPress} = this
-        switch (keyPress) {
+    private get playerAngle() {
+        switch (this.keyPress) {
             case MultiKeyCode.up:
                 return 0
             case MultiKeyCode.up + MultiKeyCode.right:
@@ -268,28 +102,223 @@ export default class Game extends React.Component<any, any> {
             case MultiKeyCode.left + MultiKeyCode.up:
                 return 315
             default:
-                return 0
+                return 0;
+        }
+    };
+
+    private get dotSpeed() {
+        const {maxSpeed} = this.option.dot;
+        return this.rand(maxSpeed * 10, -maxSpeed / 2 * 10) / 10;
+    };
+
+    private init = () => {
+        const i = new Image();
+        i.src = Ship;
+        i.onload = this.onDraw;
+        this.playerImageResource = i;
+
+        this.updateScreenSize();
+    }
+
+    @action
+    private updateScreenSize = () => {
+        const size = Math.floor(this.gameRef.current?.getBoundingClientRect().width || 0);
+        this.screenSize = size
+        this.player = {x: size / 2, y: size / 2}
+        this.offCanvas.width = size;
+        this.offCanvas.height = size;
+    };
+
+    private rand = (range: number = 10, offset: number = 0) => Math.floor(Math.random() * range) + offset;
+
+    private handleKeyUp = (e: KeyboardEvent) => {
+        e.stopPropagation();
+        switch (e.key) {
+            case "ArrowUp":
+                this.keyPress ^= MultiKeyCode.up;
+                break;
+            case "ArrowDown":
+                this.keyPress ^= MultiKeyCode.down;
+                break;
+            case "ArrowLeft":
+                this.keyPress ^= MultiKeyCode.left;
+                break;
+            case "ArrowRight":
+                this.keyPress ^= MultiKeyCode.right;
+                break;
         }
     }
 
-    private renderShip = (offCtx: CanvasRenderingContext2D) => {
-        const {getRotateDegree} = this;
-        offCtx.save();
-        offCtx.translate(this.block.x, this.block.y)
-        offCtx.rotate(getRotateDegree() * (Math.PI / 180))
-        offCtx.drawImage(this.ship, -BLOCK_SIZE / 2, -BLOCK_SIZE / 2, BLOCK_SIZE, BLOCK_SIZE);
-        offCtx.restore();
+    private handleKeyDown = (e: KeyboardEvent) => {
+        e.stopPropagation();
+        switch (e.key) {
+            case "ArrowUp":
+                this.keyPress |= MultiKeyCode.up;
+                break;
+            case "ArrowDown":
+                this.keyPress |= MultiKeyCode.down;
+                break;
+            case "ArrowLeft":
+                this.keyPress |= MultiKeyCode.left;
+                break;
+            case "ArrowRight":
+                this.keyPress |= MultiKeyCode.right;
+                break;
+            case "Enter":
+                this.isGameOver && this.handleRestart();
+                break;
+        }
     }
+
+
+    private controlPlayerMove = () => {
+        const {keyPress} = this;
+        const {size, speed} = this.option.player;
+
+        if (keyPress & MultiKeyCode.up) {
+            this.player.y < size ? this.player.y = size / 2 : this.player.y -= speed;
+        }
+        if (keyPress & MultiKeyCode.down) {
+            this.player.y > this.screenSize - size ? this.player.y = this.screenSize - size / 2 : this.player.y += speed;
+        }
+        if (keyPress & MultiKeyCode.left) {
+            this.player.x < size ? this.player.x = size / 2 : this.player.x -= speed;
+        }
+        if (keyPress & MultiKeyCode.right) {
+            this.player.x > this.screenSize - size ? this.player.x = this.screenSize - size / 2 : this.player.x += speed;
+        }
+    }
+
+
+    private createDot = () => {
+        const {screenSize} = this;
+        const {size} = this.option.dot;
+
+        let x = 0, y = 0, speedX = 0, speedY = 0;
+
+        //Todo: 스피드 생성 정책 정리
+        switch (this.rand(DotDirection.SIZE)) {
+            case DotDirection.LEFT:
+                y = this.rand(screenSize - size);
+                speedX = Math.abs(this.dotSpeed);
+                speedY = this.dotSpeed;
+                break;
+            case DotDirection.TOP:
+                x = this.rand(screenSize - size);
+                speedX = this.dotSpeed;
+                speedY = Math.abs(this.dotSpeed);
+                break;
+            case DotDirection.RIGHT:
+                x = screenSize;
+                y = this.rand(screenSize - size);
+                speedX = Math.abs(this.dotSpeed) * -1;
+                speedY = this.dotSpeed;
+                break;
+            case DotDirection.BOTTOM:
+                x = this.rand(screenSize - size);
+                y = screenSize;
+                speedX = this.dotSpeed;
+                speedY = Math.abs(this.dotSpeed) * -1;
+                break;
+        }
+
+        //Todo : 랜덤 확률로 변경, 난이도 조정가능
+        if (this.rand(20) === 0) {
+            this.dotList = [...this.dotList,
+                {
+                    x, y, speedX, speedY
+                }];
+        }
+    };
+
+    private renderDot = (offCtx: CanvasRenderingContext2D) => {
+        offCtx.fillStyle = 'red';
+
+        this.dotList.forEach(dot => {
+            offCtx.beginPath();
+            offCtx.arc(dot.x, dot.y, this.option.dot.size, 0, Math.PI * 2);
+            offCtx.stroke();
+            offCtx.fill();
+        });
+    };
+
+    private updateDot = () => {
+        const {screenSize} = this;
+        const {size} = this.option.dot;
+
+        //Todo: speed 생성 정책 정리로 로직 간소화
+        this.dotList = this.dotList
+            .filter(dot => dot.x > -size &&
+                dot.x < screenSize + size &&
+                dot.y > -size &&
+                dot.y < screenSize + size)
+            .map((dot: Dot) => {
+                const {speedX, speedY} = dot;
+                dot.x += speedX;
+                dot.y += speedY;
+                return dot;
+            }, []);
+    };
+
+    private isCrash = () => {
+        const {x: playerX, y: playerY} = this.player;
+        const {player, dot} = this.option;
+
+        for (let i = 0; i < this.dotList.length; i++) {
+            const d = this.dotList[i];
+            const x = d.x - playerX;
+            const y = d.y - playerY;
+            const distance = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+            if (distance <= player.size / 2 + dot.size / 2) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private drawOver = (ctx: CanvasRenderingContext2D) => {
+        const {screenSize} = this;
+
+        ctx.shadowColor = 'transparent'
+        ctx.font = "30px Arial";
+        ctx.fillStyle = '#080808';
+
+        ctx.fillText("GAME OVER", screenSize / 2 - 80, screenSize / 2);
+        ctx.fillText("PRESS ENTER", screenSize / 2 - 90, screenSize / 2 + 30);
+    };
+
 
     private handleDot = (offCtx: CanvasRenderingContext2D) => {
         this.createDot();
         this.updateDot();
         this.renderDot(offCtx);
-    }
+    };
 
+
+    private renderShip = (offCtx: CanvasRenderingContext2D) => {
+        const {size} = this.option.player;
+
+        offCtx.save();
+        offCtx.translate(this.player.x, this.player.y)
+        offCtx.rotate(this.playerAngle * (Math.PI / 180));
+        if (this.playerImageResource) {
+            offCtx.drawImage(this.playerImageResource, -size / 2, -size / 2, size, size);
+        } else {
+            offCtx.fillRect(-size / 2, -size / 2, size, size);
+        }
+        offCtx.restore();
+    };
+
+    @action
+    private handleRestart = () => {
+        const {screenSize} = this;
+        this.dotList = [];
+        this.player = {x: screenSize / 2, y: screenSize / 2}
+        this.onDraw();
+    };
 
     private onDraw = () => {
-
         if (!this.canvasRef.current) {
             return;
         }
@@ -300,41 +329,40 @@ export default class Game extends React.Component<any, any> {
             return;
         }
 
-        offCtx.clearRect(0, 0, this.size, this.size);
+        offCtx.clearRect(0, 0, this.screenSize, this.screenSize);
 
-        this.controlMove();
+        this.controlPlayerMove();
         this.renderShip(offCtx);
         this.handleDot(offCtx);
-        this.handleCrash();
 
-        this.isCrash && this.drawOver(offCtx)
+        this.isGameOver = this.isCrash();
+
+        if (this.isGameOver) {
+            this.drawOver(offCtx);
+        }
+
         const ctx = this.canvasRef.current.getContext("2d");
         if (ctx) {
-            ctx.clearRect(0, 0, this.size, this.size);
+            ctx.clearRect(0, 0, this.screenSize, this.screenSize);
             ctx.drawImage(offCtx.canvas, 0, 0);
         }
-        this.timer = requestAnimationFrame(this.onDraw);
-        if (this.isCrash) {
+
+        if (!this.isGameOver) {
+            this.timer = requestAnimationFrame(this.onDraw);
+        } else {
             cancelAnimationFrame(this.timer);
+            this.timer = undefined;
         }
     }
 
     render() {
-        const {size} = this;
+        const {screenSize} = this;
         return (
             <article className={'game'} ref={this.gameRef}>
-                <canvas ref={this.canvasRef} width={size} height={size} style={{background: "beige"}}>
+                <canvas ref={this.canvasRef} width={screenSize} height={screenSize} style={{background: "beige"}}>
                     캔버스를 지원하지 않는 브라우저 입니다.
                 </canvas>
             </article>
         );
     }
-}
-
-class Dot {
-    direction: DotDirection = DotDirection.LEFT;
-    x: number = 0;
-    y: number = 0;
-    speedX: number = 1;
-    speedY: number = 1;
 }
