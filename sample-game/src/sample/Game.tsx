@@ -69,7 +69,6 @@ export default class Game extends React.Component {
         this.timer = undefined;
     };
 
-    //Todo : 옵션 게터로 재정의
     private get option() {
         return {
             player: {
@@ -196,7 +195,6 @@ export default class Game extends React.Component {
 
         let x = 0, y = 0, speedX = 0, speedY = 0;
 
-        //Todo: 스피드 생성 정책 정리
         switch (this.rand(DotDirection.SIZE)) {
             case DotDirection.LEFT:
                 y = this.rand(screenSize - size);
@@ -222,7 +220,6 @@ export default class Game extends React.Component {
                 break;
         }
 
-        //Todo : 랜덤 확률로 변경, 난이도 조정가능
         if (this.rand(20) === 0) {
             this.dotList = [...this.dotList,
                 {
@@ -246,7 +243,6 @@ export default class Game extends React.Component {
         const {screenSize} = this;
         const {size} = this.option.dot;
 
-        //Todo: speed 생성 정책 정리로 로직 간소화
         this.dotList = this.dotList
             .filter(dot => dot.x > -size &&
                 dot.x < screenSize + size &&
