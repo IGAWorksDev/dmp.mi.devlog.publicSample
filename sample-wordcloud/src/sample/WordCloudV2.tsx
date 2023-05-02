@@ -328,7 +328,7 @@ class WordCloud extends Component<WordCloudProps> {
         this.worker.onmessage = action((event) => {
             const {type} = event.data;
 
-            if (wordData.length === 0) {
+            if (type === 'next' && wordData.length === 0) {
                 this.worker.terminate();
                 this.worker = undefined;
                 this.loading = false;
