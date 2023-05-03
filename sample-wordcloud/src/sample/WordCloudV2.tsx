@@ -169,18 +169,24 @@ class WordCloud extends Component<WordCloudProps> {
     };
 
     //가중치별 텍스트 컬러
-    private getTextColor = (weight: number) => {
-        if (15 <= weight && weight < 21) {
+    private getTextColor = (weight: number,word:string) => {
+        const {min,max}= this.minMaxValue;
+
+        const classCount = 7;
+        const gap = (max-min)/classCount;
+
+        // console.log(min,max,max-gap,weight,word);
+        if (max-gap <= weight && weight <= max) {
             return "#FB3363"
-        } else if (12 <= weight && weight < 15) {
+        } else if (max-gap*2 <= weight && weight < max-gap) {
             return "#06AD85";
-        } else if (9 <= weight && weight < 12) {
+        } else if (max-gap*3 <= weight && weight < max-gap*2) {
             return "#3353FB";
-        } else if (6 <= weight && weight < 9) {
+        } else if (max-gap*4 <= weight && weight < max-gap*3) {
             return "#757575";
-        } else if (3 <= weight && weight < 6) {
+        } else if (max-gap*5 <= weight && weight < max-gap*4) {
             return "#A1A1A1";
-        } else if (1 <= weight && weight < 3) {
+        } else if (max-gap*6 <= weight && weight < max-gap*5) {
             return "#BABABA";
         }
         return "#000000";
@@ -456,7 +462,7 @@ class WordCloud extends Component<WordCloudProps> {
                                       top: w.y,
                                       fontSize: w.fontSize,
                                       whiteSpace: "nowrap",
-                                      color: this.getTextColor(w.weight),
+                                      color: this.getTextColor(w.weight,w.word),
                                       transform: `translate(-50%, -50%) ${w.direction === Direction.portrait ? "rotate(90deg)" : ""}`
                                   }}>
                             {w.word}
