@@ -169,13 +169,12 @@ class WordCloud extends Component<WordCloudProps> {
     };
 
     //가중치별 텍스트 컬러
-    private getTextColor = (weight: number,word:string) => {
+    private getTextColor = (weight: number) => {
         const {min,max}= this.minMaxValue;
 
         const classCount = 7;
         const gap = (max-min)/classCount;
 
-        // console.log(min,max,max-gap,weight,word);
         if (max-gap <= weight && weight <= max) {
             return "#FB3363"
         } else if (max-gap*2 <= weight && weight < max-gap) {
@@ -462,7 +461,7 @@ class WordCloud extends Component<WordCloudProps> {
                                       top: w.y,
                                       fontSize: w.fontSize,
                                       whiteSpace: "nowrap",
-                                      color: this.getTextColor(w.weight,w.word),
+                                      color: this.getTextColor(w.weight),
                                       transform: `translate(-50%, -50%) ${w.direction === Direction.portrait ? "rotate(90deg)" : ""}`
                                   }}>
                             {w.word}
