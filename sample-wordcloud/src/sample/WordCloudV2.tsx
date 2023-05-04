@@ -385,53 +385,6 @@ class WordCloud extends Component<WordCloudProps> {
             }
         });
 
-        /*wordData.map((w) => {
-            //캔버스 갱신
-            const imageData = ctx.getImageData(0, 0, width, height);
-
-
-            //Todo : 요부분은 워커로 옮길 예정
-            //첫번째 선정된 방향 으로 놓아보면서 위치를 산출
-            let find = this.findXy(imageData,
-                direction,
-                w,
-                this.searchLength,
-                fgColor,
-                startX,
-                startY);
-
-            //이전 방향 탐색시 높을 자리가 없다면 다른 방향으로 재탐색
-            if (!find) {
-                direction === Direction.portrait ? Direction.landscape : Direction.portrait;
-
-                find = this.findXy(imageData,
-                    direction,
-                    w,
-                    this.searchLength,
-                    fgColor,
-                    startX,
-                    startY);
-            }
-
-            //찾은 결과가 있다면 캔버스에 그림
-            if (find) {
-                this.drawMarking(ctx, find.x, find.y, w.width, w.height, direction);
-                resultList.push({
-                    x: find.x,
-                    y: find.y,
-                    word: w.word,
-                    direction,
-                    weight: w.value,
-                    fontSize: w.fontSize
-                });
-            }
-        });
-
-        this.resultList = resultList;
-
-        ctx.restore();
-
-        */
     }
 
 
