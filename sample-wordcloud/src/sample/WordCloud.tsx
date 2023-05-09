@@ -135,6 +135,7 @@ class WordCloud extends Component<WordCloudProps> {
 
         const resultList: ResultType[] = [];
         wordData.map((w, idx) => {
+
             const minimumFontSize = 10 / this.scale;
             const textHeight = Math.max(w.value, (minimumFontSize));
             ctx.font = `${textHeight}px sans-serif`;
