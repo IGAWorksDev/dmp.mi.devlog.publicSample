@@ -160,27 +160,20 @@ export default class App extends React.Component<any, any> {
     }
 
 
-
     render() {
         return (
 
             <div className="App">
-                <header className="App-header">
-
-
-                    <p>
-                        <WordCloudV2   words={hangulData}
-                                       width={530}
-                                       height={530}
-                                     opt={{
-                                         minFontSize: 16,
-                                         maxFontSize: 74,
-                                         debugMode: true,
-                                         sorted: false,
-                                         maskingImage: BackgroundBlueCIRCLE
-                                     }}/>
-                    </p>
-                </header>
+                <WordCloudV2 words={hangulData}
+                             width={530}
+                             height={530}
+                             opt={{
+                                 minFontSize: 16,
+                                 maxFontSize: 74,
+                                 debugMode: true,
+                                 sorted: false,
+                                 maskingImage: BackgroundBlueCIRCLE
+                             }}/>
             </div>
         );
     }
