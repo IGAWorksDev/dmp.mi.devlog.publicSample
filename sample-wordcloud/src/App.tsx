@@ -150,16 +150,9 @@ const hangulData = [
         word: "Javascript",
         value: 22
     }
-]
-@observer
+];
+
 export default class App extends React.Component<any, any> {
-
-    constructor(props: any) {
-        super(props);
-        makeObservable(this);
-    }
-
-
     render() {
         return (
 
