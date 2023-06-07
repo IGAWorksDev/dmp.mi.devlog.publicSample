@@ -17,6 +17,7 @@ export default class App extends React.Component<any, any>{
                 {/*    <h1>Component Game</h1>*/}
                 {/*</header>*/}
                 <div className={'game-wrapper'}>
+                    맵입니다.
                     <GeoMap/>
                 </div>
             </article>

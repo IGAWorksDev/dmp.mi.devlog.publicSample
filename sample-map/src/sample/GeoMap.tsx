@@ -22,16 +22,13 @@ export default class GeoMap extends React.Component<any, any> {
 
     @action
     private init = () => {
-        import('./resource/cidomap.json').then(action((mapData: any) => {
-            console.log('map data',mapData.objects.cidomap)
-            const geoJson: any = topojson.feature(mapData, mapData.objects.cidomap); //topoJSON -> geoJSON 변환 로직
-            console.log('path',toJS(geoJson))
+        import('./resource/korea.json').then(action((mapData: any) => {
+            const geoJson: any = topojson.feature(mapData, mapData.objects.korea); //topoJSON -> geoJSON 변환 로직
             const projection = d3.geoMercator()
                 .center([126.980886, 37.524502]) //지도 중심 위경도 (서울 용산구)
                 .scale(5500); //지도 확대 배율
             const pathProjection = d3.geoPath().projection(projection); //svg path 컨버팅용
             this.svgPathList = geoJson.features.map((data: any) => pathProjection(data));
-            console.log('datalist:: ',toJS(this.svgPathList))
         }));
     }
 
