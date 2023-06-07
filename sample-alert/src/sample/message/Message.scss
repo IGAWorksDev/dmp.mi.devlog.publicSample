@@ -1,0 +1,68 @@
+.message-container {
+    --zIndex: 10;
+
+    > .message-text {
+        position: fixed;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #00ae8f;
+        padding: .5rem 1rem;
+        border-radius: 1rem;
+        color: white;
+        transition: all 0.25s linear;
+        z-index: var(--zIndex);
+        border: 1px solid silver;
+
+        &.fade-in {
+            animation: fade-in ease-in 0.25s none;
+        }
+
+        &.fade-out {
+            animation: fade-out ease-in 0.25s none;
+        }
+
+        &.notify {
+            width: 100%;
+            border-radius: .2rem;
+            display: flex;
+            justify-content: space-between;
+            box-shadow: 0 0 2px 0 black;
+            border: none;
+            z-index: calc(var(--zIndex) - 1);
+
+            > span {
+                flex: 1;
+                text-align: center;
+            }
+
+            > button {
+                background-color: transparent;
+                border: none;
+
+                &:hover {
+                    cursor: pointer;
+                    opacity: .7;
+                }
+            }
+        }
+    }
+}
+
+@keyframes fade-in {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes fade-out {
+    0% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
