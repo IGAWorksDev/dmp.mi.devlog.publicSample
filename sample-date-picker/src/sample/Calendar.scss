@@ -1,0 +1,142 @@
+#sample-calendar {
+    display: flex;
+    justify-content: center;
+    position: absolute;
+    background-color: var(--common-white);
+    border: 1px solid var(--input-border-focus);
+    border-radius: .25rem;
+    margin-top: .5rem;
+    z-index: 10;
+    transform: scaleY(0);
+    transition: transform 0.2s;
+    transform-origin: 0% 0%;
+    transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+    &.focus {
+        transform: scaleY(1);
+        transition-timing-function: cubic-bezier(0.25, 1, 0.32, 1);
+
+    }
+    > .container {
+        width: 15rem;
+        &.date, &.week {
+            > .body {
+                > table.picker-content {
+                    text-align: center;
+                    width: 100%;
+                    border-collapse: collapse;
+
+                    > thead {
+                        > tr {
+                            > th {
+                                font-size: .75rem;
+                                color: var(--common-text-disabled);
+                                font-weight: normal;
+                                line-height: 1.25;
+                            }
+                        }
+                    }
+
+                    > tbody {
+                        > tr {
+                            > td {
+                                position: relative;
+                                min-width: 2rem;
+                                min-height: 2rem;
+                                font-weight: normal;
+                                font-size: .8125rem;
+                                padding: .375rem 0;
+                                color: var(--common-text-disabled);
+                                cursor: pointer;
+                                transition: background-color .1s ease-in-out;
+
+                                &.date-in-view {
+                                    color: var(--common-text-default);
+                                    &.select {
+                                        background-color: var(--common-primary);
+                                        color: var(--common-white);
+
+                                    }
+                                }
+
+
+                            }
+
+                            &.week {
+                                border-radius: .25rem;
+                                overflow: hidden;
+
+                                > td {
+                                    &.hover {
+                                        background-color: var(--btn-bg-secondary-hover);
+                                    }
+
+                                    &.range-select {
+                                        border-radius: 0;
+                                        background-color: var(--calendar-bg-seleced);
+                                    }
+                                    &.date-in-view {
+                                        &.select {
+                                            background-color: var(--common-primary);
+                                            color: var(--common-white);
+
+                                        }
+                                    }
+                                }
+
+                            }
+
+                            &.date {
+                                > td {
+                                    border-radius: .25rem;
+
+                                    &.today {
+                                        &:before {
+                                            z-index: 1;
+                                            content: "";
+                                            inset-inline-end: 0;
+                                            inset-inline-start: 0;
+                                            top: 0;
+                                            bottom: 0;
+                                            position: absolute;
+                                            border-radius: .25rem;
+                                            border: 1px solid var(--common-primary);
+                                        }
+                                    }
+
+                                    &:hover {
+                                        background-color: var(--btn-bg-secondary-hover);
+                                    }
+
+                                    &.range-select {
+                                        border-radius: 0;
+                                        background-color: var(--calendar-bg-seleced);
+                                    }
+
+                                    &.date-in-view {
+                                        &.select, &.start, &.end {
+                                            background-color: var(--common-primary);
+                                            color: var(--common-white);
+                                        }
+
+                                        &.start {
+                                            border-bottom-left-radius: 1rem;
+                                            border-top-left-radius: 1rem;
+                                        }
+
+                                        &.end {
+                                            border-bottom-right-radius: 1rem;
+                                            border-top-right-radius: 1rem;
+                                        }
+                                    }
+
+                                }
+
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+}

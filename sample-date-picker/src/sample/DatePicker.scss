@@ -1,0 +1,265 @@
+#sample-date-picker {
+    display: inline-block;
+    max-width: 14rem;
+    position: relative;
+
+    > .picker-input {
+        display: flex;
+        align-items: center;
+        line-height: 1.25;
+        position: relative;
+        border: 1px solid var(--input-border-default);
+        border-radius: .25rem;
+        padding: .6875rem 1rem;
+
+        &:hover {
+            border-color: var(--common-primary);
+        }
+
+        &.focus {
+            border-color: var(--input-border-focus);
+            > svg {
+                color: var(--common-primary);
+
+            }
+        }
+
+        > svg {
+            margin-right: .375rem;
+            width: 1rem;
+            height: 1rem;
+            color: var(--input-icon-default);
+        }
+
+        > span {
+            position: relative;
+            display: inline-block;
+            height: 1.125rem;
+            width: 100%;
+            padding: 0;
+            font-size: .875rem;
+            line-height: 1.25;
+            border: none;
+            cursor: pointer;
+            color: var(--common-text-default);
+        }
+    }
+
+    > .picker-dropdown {
+        position: absolute;
+        background-color: var(--common-white);
+        border: 1px solid var(--input-border-focus);
+        border-radius: .25rem;
+        margin-top: .5rem;
+        z-index: 10;
+        transform: scaleY(0);
+        transition: transform 0.2s;
+        transform-origin: 0% 0%;
+        transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+
+        &.focus {
+            transform: scaleY(1);
+            transition-timing-function: cubic-bezier(0.25, 1, 0.32, 1);
+
+        }
+
+        > .container {
+            width: 15rem;
+
+            > header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: .5rem;
+
+                > svg {
+                    width: .875rem;
+                    height: 1.125rem;
+                    font-size: .875rem;
+                    color: var(--common-text-default);
+                    cursor: pointer;
+                }
+
+                > .view {
+                    display: flex;
+                    gap: .5rem;
+                    cursor: pointer;
+
+                    > .month {
+                        &:hover {
+                            color: var(--common-primary);
+                        }
+                    }
+
+                    > .year {
+                        &:hover {
+                            color: var(--common-primary);
+                        }
+                    }
+                }
+            }
+
+            > .body {
+                padding: .5rem;
+            }
+
+            &.date,&.week{
+                > .body {
+                    > table.picker-content {
+                        text-align: center;
+                        width: 100%;
+                        border-collapse: collapse;
+
+                        > thead {
+                            > tr {
+                                > th {
+                                    font-size: .75rem;
+                                    color: var(--common-text-disabled);
+                                    font-weight: normal;
+                                    line-height: 1.25;
+                                }
+                            }
+                        }
+
+                        > tbody {
+                            > tr {
+                                > td {
+                                    position: relative;
+                                    min-width: 2rem;
+                                    min-height: 2rem;
+                                    font-weight: normal;
+                                    font-size: .8125rem;
+                                    padding: .375rem 0;
+                                    color: var(--common-text-disabled);
+                                    cursor: pointer;
+                                    transition: background-color .1s ease-in-out;
+
+                                    &.date-in-view {
+                                        color: var(--common-text-default);
+                                    }
+
+
+
+                                }
+
+                                &.week {
+                                    border-radius: .25rem;
+                                    overflow: hidden;
+
+                                    &:hover {
+                                        background-color: var(--btn-bg-secondary-hover);
+                                    }
+
+                                    &.select {
+                                        background-color: var(--common-primary);
+                                        > td {
+                                            color: var(--common-white);
+                                        }
+                                    }
+                                }
+
+                                &.date {
+                                    > td {
+                                        border-radius: .25rem;
+                                        &.today {
+                                            &:before {
+                                                z-index: 1;
+                                                content: "";
+                                                inset-inline-end: 0;
+                                                inset-inline-start: 0;
+                                                top: 0;
+                                                bottom: 0;
+                                                position: absolute;
+                                                border-radius: .25rem;
+                                                border: 1px solid var(--common-primary);
+                                            }
+                                        }
+                                        &:hover {
+                                            background-color: var(--btn-bg-secondary-hover);
+                                        }
+                                    }
+
+                                    > td {
+                                        &.select {
+                                            background-color: var(--common-primary);
+                                            color: var(--common-white);
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                }
+            }
+
+            &.month {
+                > .body {
+                    > table.picker-content {
+                        width: 100%;
+
+                        tbody {
+                            width: 100%;
+
+                            td {
+                                position: relative;
+                                width: 33%;
+                                height: 3rem;
+                                text-align: center;
+                                cursor: pointer;
+                                border-radius: .25rem;
+
+                                &:hover {
+                                    background-color: var(--btn-bg-secondary-hover);
+                                }
+
+                                &.curr {
+                                    color: var(--common-white);
+                                    background-color: var(--common-primary);
+                                }
+
+                            }
+                        }
+                    }
+                }
+
+            }
+
+            &.year {
+                > .body {
+                    > table.picker-content {
+                        width: 100%;
+
+                        tbody {
+                            width: 100%;
+
+                            td {
+                                position: relative;
+                                width: 33%;
+                                height: 3rem;
+                                text-align: center;
+                                cursor: pointer;
+                                color: var(--common-text-disabled);
+                                border-radius: .25rem;
+
+                                &.year-in-view {
+                                    color: var(--common-text-default);
+                                }
+
+                                &:hover {
+                                    background-color: var(--btn-bg-secondary-hover);
+                                }
+
+                                &.curr {
+                                    color: var(--common-white);
+                                    background-color: var(--common-primary);
+                                }
+
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

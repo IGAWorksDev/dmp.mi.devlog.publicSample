@@ -1,0 +1,124 @@
+:root {
+    --input-border-default: rgba(0, 0, 0, 0.16);
+    --input-border-disabled: rgba(0, 0, 0, 0.08);
+    --input-icon-default: rgba(0, 0, 0, 0.6);
+    --input-border-focus: rgba(0, 0, 0, 0.7);
+
+    --common-primary: #00ae8f;
+    --common-white: #fff;
+    --common-text-disabled: rgba(0, 0, 0, 0.4);
+    --common-text-default: rgba(0, 0, 0, 0.8);
+    --common-divider: rgba(0, 0, 0, 0.08);
+    --common-text-title: rgba(0, 0, 0, 0.92);
+
+    --btn-bg-primary-hover: #00ae8f;
+    --btn-bg-secondary-default: #e0f5f1;
+    --btn-bg-secondary-hover: rgba(0, 174, 143, 0.16);
+    --btn-bg-tertiary-hover: #fff;
+
+    --menu-bg-focus: rgba(0, 175, 143, 0.05);
+
+    --table-head-bg-toggleon: #d6ecff;
+    --table-head-bg-default: #f7f7fa;
+    --table-bg-toggleon: rgba(0, 137, 255, 0.04);
+    --table-head-text: #007be5;
+    --table-text: rgba(0, 0, 0, 0.92);
+
+    --list-bg-focus: rgba(0, 175, 143, 0.08);
+    --list-scroll: rgba(0, 0, 0, 0.2);
+
+    --toggle-bg-on: #0089ff;
+    --toggle-bg-default: rgba(0, 0, 0, 0.2);
+
+    --calendar-bg-seleced: rgba(0, 175, 143, 0.1);
+
+    --checkbox-disabled: rgba(0, 0, 0, 0.2);
+
+    --radiobutton-disabled: rgba(0, 0, 0, 0.2);
+
+    --filter-border: rgba(0, 0, 0, 0.08);
+
+    --breadcrumb-1-depth: rgba(0, 0, 0, 0.3);
+    --breadcrumb-2-depth: rgba(0, 0, 0, 0.7);
+
+    --card-border: rgba(0, 0, 0, 0.08);
+    --card-icon-default: rgba(0, 0, 0, 0.2);
+    --card-bg-create: #fbfbfd;
+
+    --dimmed: rgba(0, 0, 0, 0.4);
+}
+
+body {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+
+    > #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    outline: none;
+    user-select: none;
+
+    &:after {
+        box-sizing: border-box;
+    }
+
+    &:before {
+        box-sizing: border-box;
+    }
+
+
+    * ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    * ::-webkit-scrollbar-track {
+        background: none;
+    }
+
+    * ::-webkit-scrollbar-corner {
+        display: none;
+    }
+
+    * ::-webkit-scrollbar-thumb {
+        background: #00000059;
+        border: 2px solid #fff;
+        border-radius: .5rem;
+    }
+}
+
+html {
+    font-size: 16px;
+}
+
+article#app {
+    width: 100%;
+    height: 100%;
+    background-color: var(--new-bg);
+
+    > div#main {
+        display: flex;
+        height: 100%;
+
+    }
+}
+
+.App {
+    padding: 5rem;
+    > .content {
+        display: flex;
+        flex-direction: column;
+    }
+}
