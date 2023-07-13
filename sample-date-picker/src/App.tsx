@@ -1,13 +1,21 @@
 import React from 'react';
 import './App.scss';
-import Calendar from "./sample/Calendar";
-import DatePicker from "./sample/DatePicker";
+import DatePicker, {ModeDatePicker} from "./sample/DatePicker";
 
 function App() {
     return (
         <div className="App">
             <div className={'content'}>
                 <DatePicker onChange={(date) => console.log(date)}/>
+            </div>
+            <div className={'content'}>
+                <DatePicker onChange={(date) => console.log(date)} picker={ModeDatePicker.week}/>
+            </div>
+            <div className={'content'}>
+                <DatePicker onChange={(date) => console.log(date)} picker={ModeDatePicker.month}/>
+            </div>
+            <div className={'content'}>
+                <DatePicker onChange={(date) => console.log(date)} picker={ModeDatePicker.year}/>
             </div>
         </div>
     );

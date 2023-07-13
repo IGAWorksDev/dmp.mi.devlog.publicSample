@@ -3,8 +3,12 @@ import './Calendar.scss';
 import {action, makeObservable, observable} from "mobx";
 import {observer} from "mobx-react";
 import {ModeDatePicker} from "./DatePicker";
+import {modeYearWeeks} from "../tools/Tools";
+import {ArrowBack, ArrowForward} from "@mui/icons-material";
 
 const CALENDAR_DAYS_KOR = ['일', '월', '화', '수', '목', '금', '토'];
+const CALENDAR_MONTH_KOR = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+
 
 interface CalendarProps {
     onChange: (date: Date) => void;
@@ -23,7 +27,11 @@ export default class Calendar extends Component<CalendarProps> {
     @observable
     private selectedDate: Date;
     @observable
+    private isFocus: boolean = false;
+    @observable
     private modeCalendar: ModeDatePicker = ModeDatePicker.date;
+    @observable
+    private hoverWeek: number = 0;
 
     constructor(props: any) {
         super(props);
@@ -60,8 +68,6 @@ export default class Calendar extends Component<CalendarProps> {
         return temp.getDate();
     };
 
-
-
     private get modeDateMonths() {
         const date = new Date(this.currentMonth);
         let weekList = [];
@@ -89,6 +95,24 @@ export default class Calendar extends Component<CalendarProps> {
         return weekList;
     };
 
+    private get modeMonthsAndYears() {
+        return [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]];
+    };
+
+    private getWeekCls = (flag:"curr"|"next"|"prev",year:number,date:number) => {
+        const {picker} = this.props;
+        if (picker === ModeDatePicker.week) {
+            let weekSelect;
+            const month = this.getDateMonth(flag);
+            const weeks = modeYearWeeks(new Date(year, month, date), year);
+            const hoverWeeks = this.hoverWeek === weeks ? "hover" : "";
+
+            weekSelect = weeks === modeYearWeeks(this.selectedDate,year)?"select":""
+
+            return `${hoverWeeks} ${weekSelect}`
+        }
+    }
+
     private normalizationTime = (time: number) => {
         return Math.floor(time / 1000 / 60 / 60 / 24);
     };
@@ -99,6 +123,15 @@ export default class Calendar extends Component<CalendarProps> {
         this.modeCalendar = picker ?? ModeDatePicker.date;
     }
 
+    private isSelectedDate = (day:any) => {
+        const currentDate = new Date();
+        currentDate.setFullYear(this.currentMonth.getFullYear(), this.currentMonth.getMonth(), day);
+        currentDate.setHours(0, 0, 0, 0);
+
+        const currentTime = this.normalizationTime(currentDate.getTime());
+        const selectedTime = this.normalizationTime(this.selectedDate.getTime());
+        return currentTime===selectedTime?'select':""
+    }
 
 
     private handleClickModeDate = (date: number, week: number) => action(() => {
@@ -119,23 +152,79 @@ export default class Calendar extends Component<CalendarProps> {
         this.currentMonth = this.selectedDate;
 
         onChange && onChange(this.selectedDate);
-
     });
 
-    private isSelectedDate = (day:any) => {
-        const currentDate = new Date();
-        currentDate.setFullYear(this.currentMonth.getFullYear(), this.currentMonth.getMonth(), day);
-        currentDate.setHours(0, 0, 0, 0);
-
-        const currentTime = this.normalizationTime(currentDate.getTime());
-        const selectedTime = this.normalizationTime(this.selectedDate.getTime());
 
 
-        return currentTime===selectedTime?'select':""
+    private handleClickModeMonth = (month: number) => action((e: any) => {
+        const {picker = ModeDatePicker.date, onChange} = this.props ;
+        const date = new Date(this.currentMonth);
+        e.stopPropagation();
+        e.preventDefault();
+
+        date.setMonth(month);
+        date.setDate(1);
+        this.currentMonth = date;
+
+
+        if (picker === ModeDatePicker.month) {
+            this.selectedDate = date;
+            this.isFocus = false;
+            onChange && onChange(this.selectedDate);
+
+        } else {
+            this.modeCalendar = ModeDatePicker.date;
+        }
+    });
+
+    private handleClickModeYear = (year: number, isHeader: boolean = false) => action(() => {
+        const {picker = ModeDatePicker.date, onChange} = this.props;
+
+        const date = new Date(this.currentMonth);
+        date.setFullYear(year);
+        date.setDate(1);
+        this.currentMonth = date;
+
+        if (picker === ModeDatePicker.year) {
+            if (!isHeader) {
+                this.selectedDate = date;
+                this.isFocus = false;
+
+                onChange && onChange(this.selectedDate);
+            }
+        } else {
+            if (!isHeader) {
+                this.modeCalendar = ModeDatePicker.month;
+            }
+        }
+    });
+
+
+    @action
+    private getDateMonth = (flag: 'curr' | "next" | "prev") => {
+        return flag === "curr" ? this.currentMonth.getMonth() : flag === "next" ? this.currentMonth.getMonth() + 1 : this.currentMonth.getMonth() - 1;
     }
 
+
     private renderDatePickerCalendar = () => {
-        return <div className={'body'}>
+        const { picker} = this.props;
+        const currMonth = this.currentMonth.getMonth();
+        const year = this.currentMonth.getFullYear();
+
+
+        return<>
+            <header>
+                <ArrowBack onMouseDown={this.handleClickModeMonth(currMonth - 1)}/>
+                <div className={`view`}>
+                    <span className={`year`}
+                          onMouseDown={action(() => this.modeCalendar = ModeDatePicker.year)}>{year}년</span>
+                    <span className={`month`}
+                          onMouseDown={action(() => this.modeCalendar = ModeDatePicker.month)}>{CALENDAR_MONTH_KOR[currMonth]}</span>
+                </div>
+                <ArrowForward onMouseDown={this.handleClickModeMonth(currMonth + 1)}/>
+
+            </header>
+            <div className={'body'}>
             <table className={'picker-content'}>
                 <thead>
                 <tr>
@@ -149,14 +238,20 @@ export default class Calendar extends Component<CalendarProps> {
                 <tbody>
                 {this.modeDateMonths.map((week, w) => {
 
-                    return <tr key={`week-${w}`} className={'date'}>
+                    return <tr key={`week-${w}`} className={`${picker}`}>
                         {
                             week.map((dateInfo, d) => {
                                 const {date, flag} = dateInfo;
                                 const selectedCls = this.isSelectedDate(date);
                                 const stateCls = ` ${flag === "curr" ? "date-in-view" : ""} `;
+                                const hoverDate = new Date(this.currentMonth.getFullYear(),  this.getDateMonth(flag), date);
+                                const weekCls = this.getWeekCls(flag,year,date);
+
                                 return <td key={`date-${d}`}
-                                           className={`${stateCls} ${selectedCls}`} onMouseDown={this.handleClickModeDate(date, w)}>
+                                           onMouseOver={picker === ModeDatePicker.week ?
+                                               action(() => {this.hoverWeek = modeYearWeeks(hoverDate, year)}) : undefined}
+                                           onMouseLeave={picker === ModeDatePicker.week?action(() => this.hoverWeek = 0):undefined}
+                                           className={`${stateCls} ${selectedCls} ${weekCls}`} onMouseDown={this.handleClickModeDate(date, w)}>
                                     {date}
                                 </td>
                             })
@@ -165,14 +260,88 @@ export default class Calendar extends Component<CalendarProps> {
                 })}
                 </tbody>
             </table>
-        </div>
+        </div></>
+    }
+
+    private renderMonthPickerCalendar = () => {
+        const year = this.currentMonth.getFullYear();
+        const currMonth = this.currentMonth.getMonth();
+
+        return <>
+            <header>
+                <ArrowBack onMouseDown={this.handleClickModeYear(year - 1, true)}/>
+                <div className={`view`}>
+                    <span>{year}년</span>
+                </div>
+                <ArrowForward onMouseDown={this.handleClickModeYear(year + 1, true)}/>
+            </header>
+            <div className={'body'}>
+                <table className={'picker-content'}>
+                    <tbody>
+                    {this.modeMonthsAndYears.map((month, m) => {
+                        return <tr key={`month-${m}`}>
+                            {month.map((monthIdx) => {
+                                return <td key={`month-td-${monthIdx}`}
+                                           className={`${currMonth === monthIdx ? "curr" : ""} `}
+                                           onMouseDown={this.handleClickModeMonth(monthIdx)}>
+                                    {CALENDAR_MONTH_KOR[monthIdx]}
+                                </td>
+                            })}
+                        </tr>
+                    })}
+                    </tbody>
+                </table>
+            </div>
+        </>
+    };
+
+    private renderYearPickerCalendar = () => {
+        const currYear = this.currentMonth.getFullYear();
+        const selectedYear = this.selectedDate.getFullYear();
+        const startYear = Math.floor(currYear / 10) * 10 - 1;
+        const rangeYear = Array(12).fill(0).reduce((acc, curr, index) => {
+            const year = Number(startYear) + index;
+            acc.push(year);
+            return acc
+        }, []);
+
+        return <>
+            <header>
+                <ArrowBack onMouseDown={this.handleClickModeYear(startYear, true)}/>
+                <div className={`view`}>
+                    <span>{rangeYear[1]} - {rangeYear[10]}</span>
+                </div>
+                <ArrowForward onMouseDown={this.handleClickModeYear(rangeYear[11], true)}/>
+            </header>
+            <div className={'body'}>
+                <table className={'picker-content'}>
+                    <tbody>
+                    {this.modeMonthsAndYears.map((year, y) => {
+                        return <tr key={`year-${y}`}>
+                            {year.map((yearIdx: number) => {
+                                return <td key={`year-td-${yearIdx}`}
+                                           className={`${selectedYear === rangeYear[yearIdx] ? "curr" : ""} ${yearIdx !== 0 && yearIdx !== 11 ? "year-in-view" : ""}`}
+                                           onMouseDown={this.handleClickModeYear(rangeYear[yearIdx])}>
+                                    {rangeYear[yearIdx]}
+                                </td>
+                            })}
+                        </tr>
+                    })}
+                    </tbody>
+                </table>
+            </div>
+        </>
     }
     render() {
         const {focus} = this.props;
         return (
-            <div id={`sample-calendar`} className={`${focus ? "focus" : ""}`}>
-                <div className={`date container`}>
-                    {this.renderDatePickerCalendar()}
+            <div id={`sample-calendar`} className={`${focus ? "focus" : ""}`} onMouseDown={(e) => e.preventDefault()}>
+                <div className={`date container  ${this.modeCalendar}`}>
+                    {(this.modeCalendar === ModeDatePicker.date || this.modeCalendar === ModeDatePicker.week) ?
+                        this.renderDatePickerCalendar()
+                        : this.modeCalendar === ModeDatePicker.month ? this.renderMonthPickerCalendar()
+                            : this.renderYearPickerCalendar()}
+
                 </div>
 
             </div>)

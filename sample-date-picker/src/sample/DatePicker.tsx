@@ -5,7 +5,6 @@ import TodayIcon from '@mui/icons-material/Today';
 import {observer} from "mobx-react";
 import {action, makeObservable, observable} from "mobx";
 import {modeYearWeeks} from "../tools/Tools";
-import {act} from "react-dom/test-utils";
 
 
 interface DatePickerProps {
@@ -36,14 +35,16 @@ export default class DatePicker extends Component<DatePickerProps> {
         super(props);
         makeObservable(this);
 
+        const {picker} = this.props;
+
+
         const initTarget = this.normalizationDate();
         this.currentMonth = initTarget;
         this.selectedDate = initTarget;
+        this.modeCalendar = picker ?? ModeDatePicker.date;
+
     }
 
-    componentDidMount() {
-      this.init();
-    }
 
     private normalizationDate = (initDate?: Date) => {
         let initTarget = initDate || new Date();
@@ -69,11 +70,6 @@ export default class DatePicker extends Component<DatePickerProps> {
         }
     }
 
-    @action
-    private init = () => {
-        const {picker} = this.props;
-        this.modeCalendar = picker ?? ModeDatePicker.date;
-    }
 
 
     @action

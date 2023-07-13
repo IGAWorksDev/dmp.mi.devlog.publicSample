@@ -18,6 +18,41 @@
     }
     > .container {
         width: 15rem;
+        > header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: .5rem;
+
+            > svg {
+                width: .875rem;
+                height: 1.125rem;
+                font-size: .875rem;
+                color: var(--common-text-default);
+                cursor: pointer;
+            }
+
+            > .view {
+                display: flex;
+                gap: .5rem;
+                cursor: pointer;
+
+                > .month {
+                    &:hover {
+                        color: var(--common-primary);
+                    }
+                }
+
+                > .year {
+                    &:hover {
+                        color: var(--common-primary);
+                    }
+                }
+            }
+        }
+        > .body {
+              padding: .5rem;
+        }
         &.date, &.week {
             > .body {
                 > table.picker-content {
@@ -132,6 +167,73 @@
                                 }
 
                             }
+                        }
+                    }
+                }
+            }
+        }
+        &.month {
+            > .body {
+                > table.picker-content {
+                    width: 100%;
+
+                    tbody {
+                        width: 100%;
+
+                        td {
+                            position: relative;
+                            width: 33%;
+                            height: 3rem;
+                            text-align: center;
+                            cursor: pointer;
+                            border-radius: .25rem;
+
+                            &:hover {
+                                background-color: var(--btn-bg-secondary-hover);
+                            }
+
+                            &.curr {
+                                color: var(--common-white);
+                                background-color: var(--common-primary);
+                            }
+
+                        }
+                    }
+                }
+            }
+
+        }
+
+        &.year {
+            > .body {
+                > table.picker-content {
+                    width: 100%;
+
+                    tbody {
+                        width: 100%;
+
+                        td {
+                            position: relative;
+                            width: 33%;
+                            height: 3rem;
+                            text-align: center;
+                            cursor: pointer;
+                            color: var(--common-text-disabled);
+                            border-radius: .25rem;
+
+                            &.year-in-view {
+                                color: var(--common-text-default);
+                            }
+
+                            &:hover {
+                                background-color: var(--btn-bg-secondary-hover);
+                            }
+
+                            &.curr {
+                                color: var(--common-white);
+                                background-color: var(--common-primary);
+                            }
+
                         }
                     }
                 }
