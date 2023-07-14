@@ -3,7 +3,7 @@ import './DatePicker.scss';
 import Calendar from "./Calendar";
 import TodayIcon from '@mui/icons-material/Today';
 import {observer} from "mobx-react";
-import {action, makeObservable, observable} from "mobx";
+import {action, makeObservable, observable, runInAction} from "mobx";
 import {modeYearWeeks} from "../tools/Tools";
 
 
@@ -22,9 +22,9 @@ export enum ModeDatePicker {
 export default class DatePicker extends Component<DatePickerProps> {
 
     @observable
-    private currentMonth: Date;
+    private currentMonth: Date = new Date();
     @observable
-    private selectedDate: Date;
+    private selectedDate: Date = new Date();
     @observable
     private isFocus: boolean = false;
     @observable
@@ -35,14 +35,13 @@ export default class DatePicker extends Component<DatePickerProps> {
         super(props);
         makeObservable(this);
 
-        const {picker} = this.props;
-
-
-        const initTarget = this.normalizationDate();
-        this.currentMonth = initTarget;
-        this.selectedDate = initTarget;
-        this.modeCalendar = picker ?? ModeDatePicker.date;
-
+        runInAction(() => {
+            const {picker} = this.props;
+            const initTarget = this.normalizationDate();
+            this.currentMonth = initTarget;
+            this.selectedDate = initTarget;
+            this.modeCalendar = picker ?? ModeDatePicker.date;
+        });
     }
 
 

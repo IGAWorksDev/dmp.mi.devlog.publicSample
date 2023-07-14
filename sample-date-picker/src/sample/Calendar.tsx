@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
 import './Calendar.scss';
-import {action, makeObservable, observable} from "mobx";
+import {action, computed, makeObservable, observable, runInAction} from "mobx";
 import {observer} from "mobx-react";
 import {ModeDatePicker} from "./DatePicker";
 import {modeYearWeeks} from "../tools/Tools";
@@ -22,10 +22,12 @@ interface CalendarProps {
 
 @observer
 export default class Calendar extends Component<CalendarProps> {
+    private readonly modeMonthsAndYears = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]];
+
     @observable
-    private currentMonth: Date;
+    private currentMonth: Date  =new Date();
     @observable
-    private selectedDate: Date;
+    private selectedDate: Date = new Date();
     @observable
     private isFocus: boolean = false;
     @observable
@@ -37,16 +39,16 @@ export default class Calendar extends Component<CalendarProps> {
         super(props);
         makeObservable(this);
 
-        const {picker, date, initDate} = props;
 
-        const initTarget = this.normalizationDate(date || initDate);
-        this.currentMonth = initTarget;
-        this.selectedDate = initTarget;
+        runInAction(() => {
+            const {picker, date, initDate} = props;
+
+            const initTarget = this.normalizationDate(date || initDate);
+            this.currentMonth = initTarget;
+            this.selectedDate = initTarget;
+            this.modeCalendar = picker ?? ModeDatePicker.date;
+        });
     };
-
-    componentDidMount() {
-        this.init();
-    }
 
     private normalizationDate = (initDate?: Date) => {
         let initTarget = initDate || new Date();
@@ -55,14 +57,20 @@ export default class Calendar extends Component<CalendarProps> {
         return initTarget;
     };
 
-    private getLastDate(date: Date) {
+    @computed
+    private get lastDate() {
+        const date = new Date(this.currentMonth);
+        date.setDate(1);
         const temp = new Date(date.getTime());
         temp.setMonth(date.getMonth() + 1);
         temp.setDate(0);
         return temp.getDate();
     };
 
-    private getPrevLastDate = (date: Date) => {
+    @computed
+    private get prevLastDate() {
+        const date = new Date(this.currentMonth);
+        date.setDate(1);
         const temp = new Date(date.getTime());
         temp.setDate(0);
         return temp.getDate();
@@ -73,8 +81,8 @@ export default class Calendar extends Component<CalendarProps> {
         let weekList = [];
         date.setDate(1);
 
-        const prevMonthLastDate = this.getPrevLastDate(date);
-        const lastDate = this.getLastDate(date);
+        const prevMonthLastDate = this.prevLastDate;
+        const lastDate = this.lastDate;
         const day = date.getDay(); // 0~6 일-토
         const maxWeeks = Math.ceil((lastDate + day) / 7);
 
@@ -95,11 +103,8 @@ export default class Calendar extends Component<CalendarProps> {
         return weekList;
     };
 
-    private get modeMonthsAndYears() {
-        return [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]];
-    };
 
-    private getWeekCls = (flag:"curr"|"next"|"prev",year:number,date:number) => {
+    private getWeekClass = (flag:"curr"|"next"|"prev",year:number,date:number) => {
         const {picker} = this.props;
         if (picker === ModeDatePicker.week) {
             let weekSelect;
@@ -117,20 +122,16 @@ export default class Calendar extends Component<CalendarProps> {
         return Math.floor(time / 1000 / 60 / 60 / 24);
     };
 
-    @action
-    private init = () => {
-        const {picker} = this.props;
-        this.modeCalendar = picker ?? ModeDatePicker.date;
+
+    private isSameDate = (date1:Date,date2:Date) =>{
+        return date1.getTime()===date2.getTime()?"select":"";
     }
 
     private isSelectedDate = (day:any) => {
         const currentDate = new Date();
         currentDate.setFullYear(this.currentMonth.getFullYear(), this.currentMonth.getMonth(), day);
         currentDate.setHours(0, 0, 0, 0);
-
-        const currentTime = this.normalizationTime(currentDate.getTime());
-        const selectedTime = this.normalizationTime(this.selectedDate.getTime());
-        return currentTime===selectedTime?'select':""
+        return this.isSameDate(currentDate,this.selectedDate)
     }
 
 
@@ -211,7 +212,6 @@ export default class Calendar extends Component<CalendarProps> {
         const currMonth = this.currentMonth.getMonth();
         const year = this.currentMonth.getFullYear();
 
-
         return<>
             <header>
                 <ArrowBack onMouseDown={this.handleClickModeMonth(currMonth - 1)}/>
@@ -242,16 +242,16 @@ export default class Calendar extends Component<CalendarProps> {
                         {
                             week.map((dateInfo, d) => {
                                 const {date, flag} = dateInfo;
-                                const selectedCls = this.isSelectedDate(date);
-                                const stateCls = ` ${flag === "curr" ? "date-in-view" : ""} `;
+                                const selectedClass = this.isSelectedDate(date);
+                                const stateClass = ` ${flag === "curr" ? "date-in-view" : ""} `;
                                 const hoverDate = new Date(this.currentMonth.getFullYear(),  this.getDateMonth(flag), date);
-                                const weekCls = this.getWeekCls(flag,year,date);
+                                const weekClass = this.getWeekClass(flag,year,date);
 
                                 return <td key={`date-${d}`}
                                            onMouseOver={picker === ModeDatePicker.week ?
                                                action(() => {this.hoverWeek = modeYearWeeks(hoverDate, year)}) : undefined}
                                            onMouseLeave={picker === ModeDatePicker.week?action(() => this.hoverWeek = 0):undefined}
-                                           className={`${stateCls} ${selectedCls} ${weekCls}`} onMouseDown={this.handleClickModeDate(date, w)}>
+                                           className={`${stateClass} ${selectedClass} ${weekClass}`} onMouseDown={this.handleClickModeDate(date, w)}>
                                     {date}
                                 </td>
                             })
@@ -299,6 +299,8 @@ export default class Calendar extends Component<CalendarProps> {
         const currYear = this.currentMonth.getFullYear();
         const selectedYear = this.selectedDate.getFullYear();
         const startYear = Math.floor(currYear / 10) * 10 - 1;
+
+        //get 화 할것
         const rangeYear = Array(12).fill(0).reduce((acc, curr, index) => {
             const year = Number(startYear) + index;
             acc.push(year);
