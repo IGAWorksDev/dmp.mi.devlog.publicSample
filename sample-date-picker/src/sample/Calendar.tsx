@@ -5,9 +5,12 @@ import {observer} from "mobx-react";
 import {ModeDatePicker} from "./DatePicker";
 import {modeYearWeeks} from "../tools/Tools";
 import {ArrowBack, ArrowForward} from "@mui/icons-material";
+import {getHoliday, holidayInstance} from "../api";
+import axios from "axios";
 
 const CALENDAR_DAYS_KOR = ['일', '월', '화', '수', '목', '금', '토'];
 const CALENDAR_MONTH_KOR = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+const REQUEST_URL = 'https://public.data.igaw.io/holiday/search'
 
 
 interface CalendarProps {
@@ -34,6 +37,8 @@ export default class Calendar extends Component<CalendarProps> {
     private modeCalendar: ModeDatePicker = ModeDatePicker.date;
     @observable
     private hoverWeek: number = 0;
+    @observable
+    private holidayList :Date[] =[];
 
     constructor(props: any) {
         super(props);
@@ -47,8 +52,13 @@ export default class Calendar extends Component<CalendarProps> {
             this.currentMonth = initTarget;
             this.selectedDate = initTarget;
             this.modeCalendar = picker ?? ModeDatePicker.date;
+
+            this.getHoliday();
+
+
         });
     };
+
 
     private normalizationDate = (initDate?: Date) => {
         let initTarget = initDate || new Date();
@@ -56,6 +66,31 @@ export default class Calendar extends Component<CalendarProps> {
         initTarget.setHours(0, 0, 0, 0);
         return initTarget;
     };
+
+    @action
+    private getHoliday = async () => {
+        try {
+            const currentDate = new Date();
+            const year = currentDate.getFullYear();
+            const response = await axios.get(`${REQUEST_URL}?key=${year}`);
+            runInAction(()=>{
+                this.holidayList = response.data.data.reduce((acc:any[],curr:any) => {
+                    const currentDate = new Date();
+                    const year = Number(curr.locdate.slice(0,4));
+                    const month = Number(curr.locdate.slice(4,6));
+                    const day = Number(curr.locdate.slice(6,8));
+                    currentDate.setFullYear(year, month-1, day);
+                    currentDate.setHours(0, 0, 0, 0);
+                    acc.push(currentDate)
+                    return acc
+                },[])
+            })
+
+        } catch (e) {
+            console.log(e)
+            return e;
+        }
+    }
 
     @computed
     private get lastDate() {
@@ -133,6 +168,18 @@ export default class Calendar extends Component<CalendarProps> {
         currentDate.setHours(0, 0, 0, 0);
         return this.isSameDate(currentDate,this.selectedDate)
     }
+
+    private isHolidayDate = (day:any) => {
+        const currentDate = new Date();
+
+        currentDate.setFullYear(this.currentMonth.getFullYear(), this.currentMonth.getMonth(), day);
+        currentDate.setHours(0, 0, 0, 0);
+        const isHoliday =this.holidayList.findIndex(holiday => holiday.getTime() === currentDate.getTime());
+        if (isHoliday > -1) return "holiday";
+        else return ""
+
+    }
+
 
 
     private handleClickModeDate = (date: number, week: number) => action(() => {
@@ -246,12 +293,13 @@ export default class Calendar extends Component<CalendarProps> {
                                 const stateClass = ` ${flag === "curr" ? "date-in-view" : ""} `;
                                 const hoverDate = new Date(this.currentMonth.getFullYear(),  this.getDateMonth(flag), date);
                                 const weekClass = this.getWeekClass(flag,year,date);
+                                const holidayClass  = this.isHolidayDate(date);
 
                                 return <td key={`date-${d}`}
                                            onMouseOver={picker === ModeDatePicker.week ?
                                                action(() => {this.hoverWeek = modeYearWeeks(hoverDate, year)}) : undefined}
                                            onMouseLeave={picker === ModeDatePicker.week?action(() => this.hoverWeek = 0):undefined}
-                                           className={`${stateClass} ${selectedClass} ${weekClass}`} onMouseDown={this.handleClickModeDate(date, w)}>
+                                           className={`${stateClass} ${selectedClass} ${weekClass} ${holidayClass}`} onMouseDown={this.handleClickModeDate(date, w)}>
                                     {date}
                                 </td>
                             })

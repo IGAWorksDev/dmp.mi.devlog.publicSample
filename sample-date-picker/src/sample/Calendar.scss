@@ -89,7 +89,9 @@
                                     &.select {
                                         background-color: var(--common-primary);
                                         color: var(--common-white);
-
+                                    }
+                                    &.holiday {
+                                        color:red
                                     }
                                 }
 
