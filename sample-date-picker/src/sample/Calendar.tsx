@@ -5,7 +5,6 @@ import {observer} from "mobx-react";
 import {ModeDatePicker} from "./DatePicker";
 import {modeYearWeeks} from "../tools/Tools";
 import {ArrowBack, ArrowForward} from "@mui/icons-material";
-import {getHoliday, holidayInstance} from "../api";
 import axios from "axios";
 
 const CALENDAR_DAYS_KOR = ['일', '월', '화', '수', '목', '금', '토'];
