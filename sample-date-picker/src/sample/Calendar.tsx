@@ -1,11 +1,11 @@
 import React, {Component} from 'react';
 import './Calendar.scss';
-import {action, computed, makeObservable, observable, runInAction} from "mobx";
+import {action, computed, makeObservable, observable, reaction, runInAction} from "mobx";
 import {observer} from "mobx-react";
 import {ModeDatePicker} from "./DatePicker";
 import {modeYearWeeks} from "../tools/Tools";
 import {ArrowBack, ArrowForward} from "@mui/icons-material";
-import axios from "axios";
+import {getHoliday} from "../api/holiday";
 
 const CALENDAR_DAYS_KOR = ['일', '월', '화', '수', '목', '금', '토'];
 const CALENDAR_MONTH_KOR = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
@@ -19,7 +19,6 @@ interface CalendarProps {
     focus?: boolean;
     date?: Date;
     initDate?: Date;
-    currentDate?: Date;
 }
 
 @observer
@@ -27,7 +26,9 @@ export default class Calendar extends Component<CalendarProps> {
     private readonly modeMonthsAndYears = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]];
 
     @observable
-    private currentMonth: Date  =new Date();
+    private currentMonth: Date = new Date();
+    @observable
+    private currentYear : number = new Date().getFullYear();
     @observable
     private selectedDate: Date = new Date();
     @observable
@@ -37,7 +38,7 @@ export default class Calendar extends Component<CalendarProps> {
     @observable
     private hoverWeek: number = 0;
     @observable
-    private holidayList :Date[] =[];
+    private holidayList: Date[] = [];
 
     constructor(props: any) {
         super(props);
@@ -46,15 +47,17 @@ export default class Calendar extends Component<CalendarProps> {
 
         runInAction(() => {
             const {picker, date, initDate} = props;
-
             const initTarget = this.normalizationDate(date || initDate);
             this.currentMonth = initTarget;
             this.selectedDate = initTarget;
             this.modeCalendar = picker ?? ModeDatePicker.date;
 
-            this.getHoliday();
+            this.axiosHoliday(this.currentYear);
+        });
 
-
+        reaction(()=>this.currentYear,
+            (currentYear)=>{
+            this.axiosHoliday(currentYear)
         });
     };
 
@@ -66,30 +69,26 @@ export default class Calendar extends Component<CalendarProps> {
         return initTarget;
     };
 
-    @action
-    private getHoliday = async () => {
-        try {
-            const currentDate = new Date();
-            const year = currentDate.getFullYear();
-            const response = await axios.get(`${REQUEST_URL}?key=${year}`);
-            runInAction(()=>{
-                this.holidayList = response.data.data.reduce((acc:any[],curr:any) => {
-                    const currentDate = new Date();
-                    const year = Number(curr.locdate.slice(0,4));
-                    const month = Number(curr.locdate.slice(4,6));
-                    const day = Number(curr.locdate.slice(6,8));
-                    currentDate.setFullYear(year, month-1, day);
-                    currentDate.setHours(0, 0, 0, 0);
-                    acc.push(currentDate)
-                    return acc
-                },[])
-            })
 
-        } catch (e) {
-            console.log(e)
-            return e;
-        }
-    }
+    @action
+    private axiosHoliday = async (year:number) => {
+        await getHoliday(year).then(res => {
+                runInAction(() => {
+                    this.holidayList = res.reduce((acc: any[], curr: any) => {
+                        const currentDate = new Date();
+                        const year = Number(curr.locdate.slice(0, 4));
+                        const month = Number(curr.locdate.slice(4, 6));
+                        const day = Number(curr.locdate.slice(6, 8));
+                        currentDate.setFullYear(year, month - 1, day);
+                        currentDate.setHours(0, 0, 0, 0);
+                        acc.push(currentDate)
+                        return acc
+                    }, [])
+                })
+            }
+        )
+    };
+
 
     @computed
     private get lastDate() {
@@ -138,7 +137,7 @@ export default class Calendar extends Component<CalendarProps> {
     };
 
 
-    private getWeekClass = (flag:"curr"|"next"|"prev",year:number,date:number) => {
+    private getWeekClass = (flag: "curr" | "next" | "prev", year: number, date: number) => {
         const {picker} = this.props;
         if (picker === ModeDatePicker.week) {
             let weekSelect;
@@ -146,39 +145,33 @@ export default class Calendar extends Component<CalendarProps> {
             const weeks = modeYearWeeks(new Date(year, month, date), year);
             const hoverWeeks = this.hoverWeek === weeks ? "hover" : "";
 
-            weekSelect = weeks === modeYearWeeks(this.selectedDate,year)?"select":""
+            weekSelect = weeks === modeYearWeeks(this.selectedDate, year) ? "select" : ""
 
             return `${hoverWeeks} ${weekSelect}`
         }
     }
 
-    private normalizationTime = (time: number) => {
-        return Math.floor(time / 1000 / 60 / 60 / 24);
-    };
 
-
-    private isSameDate = (date1:Date,date2:Date) =>{
-        return date1.getTime()===date2.getTime()?"select":"";
+    private isSameDate = (date1: Date, date2: Date) => {
+        return date1.getTime() === date2.getTime() ? "select" : "";
     }
 
-    private isSelectedDate = (day:any) => {
+    private isSelectedDate = (day: any) => {
         const currentDate = new Date();
         currentDate.setFullYear(this.currentMonth.getFullYear(), this.currentMonth.getMonth(), day);
         currentDate.setHours(0, 0, 0, 0);
-        return this.isSameDate(currentDate,this.selectedDate)
+        return this.isSameDate(currentDate, this.selectedDate)
     }
 
-    private isHolidayDate = (day:any) => {
+    private isHolidayDate = (day: any) => {
         const currentDate = new Date();
 
         currentDate.setFullYear(this.currentMonth.getFullYear(), this.currentMonth.getMonth(), day);
         currentDate.setHours(0, 0, 0, 0);
-        const isHoliday =this.holidayList.findIndex(holiday => holiday.getTime() === currentDate.getTime());
+        const isHoliday = this.holidayList.findIndex(holiday => holiday.getTime() === currentDate.getTime());
         if (isHoliday > -1) return "holiday";
         else return ""
-
     }
-
 
 
     private handleClickModeDate = (date: number, week: number) => action(() => {
@@ -192,6 +185,7 @@ export default class Calendar extends Component<CalendarProps> {
         } else if ((week === maxWeek || week === maxWeek - 1) && date < 12) {
             month += 1;
         }
+
         clickDate.setFullYear(this.currentMonth.getFullYear(), month, date);
         clickDate.setHours(0, 0, 0, 0);
 
@@ -202,9 +196,8 @@ export default class Calendar extends Component<CalendarProps> {
     });
 
 
-
     private handleClickModeMonth = (month: number) => action((e: any) => {
-        const {picker = ModeDatePicker.date, onChange} = this.props ;
+        const {picker = ModeDatePicker.date, onChange} = this.props;
         const date = new Date(this.currentMonth);
         e.stopPropagation();
         e.preventDefault();
@@ -212,8 +205,7 @@ export default class Calendar extends Component<CalendarProps> {
         date.setMonth(month);
         date.setDate(1);
         this.currentMonth = date;
-
-
+        this.currentYear = this.currentMonth.getFullYear();
         if (picker === ModeDatePicker.month) {
             this.selectedDate = date;
             this.isFocus = false;
@@ -254,11 +246,11 @@ export default class Calendar extends Component<CalendarProps> {
 
 
     private renderDatePickerCalendar = () => {
-        const { picker} = this.props;
+        const {picker} = this.props;
         const currMonth = this.currentMonth.getMonth();
         const year = this.currentMonth.getFullYear();
 
-        return<>
+        return <>
             <header>
                 <ArrowBack onMouseDown={this.handleClickModeMonth(currMonth - 1)}/>
                 <div className={`view`}>
@@ -271,43 +263,47 @@ export default class Calendar extends Component<CalendarProps> {
 
             </header>
             <div className={'body'}>
-            <table className={'picker-content'}>
-                <thead>
-                <tr>
-                    {
-                        CALENDAR_DAYS_KOR.map((day, d) => {
-                            return <th key={`day-${d}`}>{day}</th>
-                        })
-                    }
-                </tr>
-                </thead>
-                <tbody>
-                {this.modeDateMonths.map((week, w) => {
-
-                    return <tr key={`week-${w}`} className={`${picker}`}>
+                <table className={'picker-content'}>
+                    <thead>
+                    <tr>
                         {
-                            week.map((dateInfo, d) => {
-                                const {date, flag} = dateInfo;
-                                const selectedClass = this.isSelectedDate(date);
-                                const stateClass = ` ${flag === "curr" ? "date-in-view" : ""} `;
-                                const hoverDate = new Date(this.currentMonth.getFullYear(),  this.getDateMonth(flag), date);
-                                const weekClass = this.getWeekClass(flag,year,date);
-                                const holidayClass  = this.isHolidayDate(date);
-
-                                return <td key={`date-${d}`}
-                                           onMouseOver={picker === ModeDatePicker.week ?
-                                               action(() => {this.hoverWeek = modeYearWeeks(hoverDate, year)}) : undefined}
-                                           onMouseLeave={picker === ModeDatePicker.week?action(() => this.hoverWeek = 0):undefined}
-                                           className={`${stateClass} ${selectedClass} ${weekClass} ${holidayClass}`} onMouseDown={this.handleClickModeDate(date, w)}>
-                                    {date}
-                                </td>
+                            CALENDAR_DAYS_KOR.map((day, d) => {
+                                return <th key={`day-${d}`}>{day}</th>
                             })
                         }
                     </tr>
-                })}
-                </tbody>
-            </table>
-        </div></>
+                    </thead>
+                    <tbody>
+                    {this.modeDateMonths.map((week, w) => {
+
+                        return <tr key={`week-${w}`} className={`${picker}`}>
+                            {
+                                week.map((dateInfo, d) => {
+                                    const {date, flag} = dateInfo;
+                                    const selectedClass = this.isSelectedDate(date);
+                                    const stateClass = ` ${flag === "curr" ? "date-in-view" : ""} `;
+                                    const hoverDate = new Date(this.currentMonth.getFullYear(), this.getDateMonth(flag), date);
+                                    const weekClass = this.getWeekClass(flag, year, date);
+                                    const holidayClass = this.isHolidayDate(date);
+
+                                    return <td key={`date-${d}`}
+                                               onMouseOver={picker === ModeDatePicker.week ?
+                                                   action(() => {
+                                                       this.hoverWeek = modeYearWeeks(hoverDate, year)
+                                                   }) : undefined}
+                                               onMouseLeave={picker === ModeDatePicker.week ? action(() => this.hoverWeek = 0) : undefined}
+                                               className={`${stateClass} ${selectedClass} ${weekClass} ${holidayClass}`}
+                                               onMouseDown={this.handleClickModeDate(date, w)}>
+                                        {date}
+                                    </td>
+                                })
+                            }
+                        </tr>
+                    })}
+                    </tbody>
+                </table>
+            </div>
+        </>
     }
 
     private renderMonthPickerCalendar = () => {
@@ -381,6 +377,7 @@ export default class Calendar extends Component<CalendarProps> {
             </div>
         </>
     }
+
     render() {
         const {focus} = this.props;
         return (
