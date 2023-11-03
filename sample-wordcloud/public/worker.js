@@ -38,6 +38,7 @@ onmessage = (event) => {
                 markingColor);
         }
 
+
         if (find) {
             postMessage({type: "result", word, direction, x: find.x, y: find.y});
         }

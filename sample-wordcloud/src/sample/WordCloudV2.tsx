@@ -1,6 +1,7 @@
 import React, {Component} from 'react';
 import {observer} from "mobx-react";
 import {action, computed, makeObservable, observable} from "mobx";
+import {write} from "fs";
 
 interface WordCloudProps {
     words: WordType[];
@@ -126,6 +127,8 @@ class WordCloud extends Component<WordCloudProps> {
 
         this.offCanvas.width = this.width;
         this.offCanvas.height = this.height;
+
+
 
         const {maskingImage} = this.props.opt ?? {};
 
@@ -317,7 +320,6 @@ class WordCloud extends Component<WordCloudProps> {
         const startX = width / 2;
         const startY = height / 2;
 
-
         if (this.worker) {
             this.worker.terminate();
         }
@@ -353,7 +355,6 @@ class WordCloud extends Component<WordCloudProps> {
                 const imageData = ctx.getImageData(0, 0, width, height);
                 const direction = Math.floor(Math.random() * 2) === 0 ? Direction.portrait : Direction.landscape;
                 const word = wordData.shift();
-
                 this.worker.postMessage({
                     type: "process",
                     imageData,
@@ -367,13 +368,13 @@ class WordCloud extends Component<WordCloudProps> {
                 });
             } else if (type === 'result') {
                 const {word, direction, x, y} = event.data ?? {};
+
                 if (!word) {
                     console.error("연산 결과가 없습니다.")
                     return;
                 }
 
                 this.drawMarking(ctx, x, y, word.width, word.height, direction);
-
                 this.resultList = [...this.resultList, {
                     x,
                     y,
@@ -398,6 +399,7 @@ class WordCloud extends Component<WordCloudProps> {
 
     render() {
         const {width = 200, height = 200, opt = {debugMode: false}} = this.props;
+
         return (
             <div className={'word-cloud'}
                  ref={this.mainRef}
